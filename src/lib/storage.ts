@@ -1,4 +1,4 @@
-import { Client, Tag, Sale, ClientStatus } from '../types';
+import { Client, Tag, Sale, ClientStatus, Task } from '../types';
 import { DEFAULT_TAGS, INITIAL_CLIENTS, INITIAL_SALES } from '../data/seed';
 
 // LocalStorage Keys
@@ -6,7 +6,8 @@ const KEYS = {
   CLIENTS: 'merlin_clients_v1',
   TAGS: 'merlin_tags_v1',
   SALES: 'merlin_sales_v1',
-  THEME: 'merlin_theme_v1'
+  THEME: 'merlin_theme_v1',
+  TASKS: 'merlin_tasks_v1'
 };
 
 export function getStoredClients(): Client[] {
@@ -143,4 +144,23 @@ export function isTomorrow(dateStr: string | null): boolean {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return isSameDay(d, tomorrow);
+}
+
+export function getStoredTasks(): Task[] {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(KEYS.TASKS);
+  if (!stored) {
+    return [];
+  }
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+}
+
+export function saveStoredTasks(tasks: Task[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
+  }
 }

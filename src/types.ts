@@ -53,3 +53,16 @@ export interface Sale {
   commissionValue: number;
   saleDate: string; // YYYY-MM-DD
 }
+
+export interface Task {
+  id: string;
+  clientId?: string; // Linked client ID from CRM
+  clientName?: string; // Stored name for quick display/fallback
+  actionType: string; // 'Ligação' | 'WhatsApp' | 'Visita' | 'Enviar Proposta' | 'Outro'
+  dueDate: string; // YYYY-MM-DD
+  dueTime?: string; // HH:MM
+  priority: 'Alta' | 'Média' | 'Baixa';
+  notes?: string;
+  completed: boolean;
+  createdAt: string;
+}

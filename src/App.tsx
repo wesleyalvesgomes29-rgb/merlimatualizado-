@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Client, ClientStatus, Tag, Sale } from './types';
+import { Client, ClientStatus, Tag, Sale, Task } from './types';
 import { 
   getStoredClients, 
   saveStoredClients, 
@@ -10,7 +10,9 @@ import {
   getStoredTheme, 
   saveStoredTheme,
   getClientAlerts,
-  isToday
+  isToday,
+  getStoredTasks,
+  saveStoredTasks
 } from './lib/storage';
 import { 
   Sparkles, 
@@ -24,7 +26,8 @@ import {
   Plus,
   Compass,
   AlertTriangle,
-  UserPlus
+  UserPlus,
+  CheckSquare
 } from 'lucide-react';
 import MyDay from './components/MyDay';
 import Dashboard from './components/Dashboard';
@@ -33,6 +36,7 @@ import ClientDirectory from './components/ClientDirectory';
 import ClientDetails from './components/ClientDetails';
 import Commissions from './components/Commissions';
 import AddClientModal from './components/AddClientModal';
+import MyRoutine from './components/MyRoutine';
 import { motion, AnimatePresence } from 'motion/react';
 import IntelligenceDashboard from './modules/intelligence/components/IntelligenceDashboard';
 
@@ -41,6 +45,7 @@ export default function App() {
   const [clients, setClients] = useState<Client[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   // Navigation state
@@ -56,11 +61,13 @@ export default function App() {
     const loadedClients = getStoredClients();
     const loadedTags = getStoredTags();
     const loadedSales = getStoredSales();
+    const loadedTasks = getStoredTasks();
     const loadedTheme = getStoredTheme();
 
     setClients(loadedClients);
     setTags(loadedTags);
     setSales(loadedSales);
+    setTasks(loadedTasks);
     setTheme(loadedTheme);
 
     // Apply class to HTML tag for dark mode
@@ -278,11 +285,47 @@ export default function App() {
     saveStoredSales(updated);
   };
 
+  // TASK CRUD HANDLERS
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    const newTask: Task = {
+      id: 'task_' + Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      ...taskData
+    };
+    const updated = [newTask, ...tasks];
+    setTasks(updated);
+    saveStoredTasks(updated);
+  };
+
+  const handleToggleTaskComplete = (taskId: string) => {
+    const updated = tasks.map(t => 
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+    setTasks(updated);
+    saveStoredTasks(updated);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    const updated = tasks.filter(t => t.id !== taskId);
+    setTasks(updated);
+    saveStoredTasks(updated);
+  };
+
   // Calculate current alerts count for active notification badges
   const todayAlertsCount = clients.filter(c => {
     const alerts = getClientAlerts(c);
     return (isToday(c.nextContactDate) || alerts.isAtrasado) && c.status !== 'Venda Fechada' && c.status !== 'Perdido';
   }).length;
+
+  const todayStr = (() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  })();
+
+  const pendingTasksCount = tasks.filter(t => !t.completed && t.dueDate <= todayStr).length;
 
   // Selected client helper object
   const activeClientObj = clients.find(c => c.id === selectedClientId);
@@ -336,6 +379,27 @@ export default function App() {
                   activeTab === 'meu_dia' ? 'bg-slate-950 text-white' : 'bg-rose-500 text-white'
                 }`}>
                   {todayAlertsCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rotina')}
+              className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === 'rotina'
+                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <CheckSquare className="h-4.5 w-4.5" />
+                <span>Minha Rotina</span>
+              </div>
+              {pendingTasksCount > 0 && (
+                <span className={`text-[10px] font-extrabold h-5 px-1.5 rounded-md flex items-center justify-center ${
+                  activeTab === 'rotina' ? 'bg-slate-950 text-white' : 'bg-rose-500 text-white'
+                }`}>
+                  {pendingTasksCount}
                 </span>
               )}
             </button>
@@ -463,6 +527,17 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'rotina' && (
+            <MyRoutine
+              tasks={tasks}
+              clients={clients}
+              onAddTask={handleAddTask}
+              onToggleTaskComplete={handleToggleTaskComplete}
+              onDeleteTask={handleDeleteTask}
+              onSelectClient={setSelectedClientId}
+            />
+          )}
+
           {activeTab === 'funil' && (
             <Kanban
               clients={clients}
@@ -533,6 +608,21 @@ export default function App() {
           {todayAlertsCount > 0 && (
             <span className="absolute top-2 right-6 bg-rose-500 text-white text-[8px] font-black h-4 px-1 rounded-full flex items-center justify-center">
               {todayAlertsCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('rotina')}
+          className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+            activeTab === 'rotina' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <CheckSquare className="h-5 w-5" />
+          <span className="text-[9px] font-bold mt-1">Rotina</span>
+          {pendingTasksCount > 0 && (
+            <span className="absolute top-2 right-6 bg-rose-500 text-white text-[8px] font-black h-4 px-1 rounded-full flex items-center justify-center">
+              {pendingTasksCount}
             </span>
           )}
         </button>
