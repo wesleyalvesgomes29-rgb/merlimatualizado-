@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Client, ClientStatus, Tag, Sale, Task } from './types';
 import { 
   getStoredClients, 
@@ -14,6 +14,7 @@ import {
   getStoredTasks,
   saveStoredTasks
 } from './lib/storage';
+import { MerlinRulesEngine } from './modules/rulesEngine/engine';
 import { 
   Sparkles, 
   Calendar, 
@@ -50,6 +51,14 @@ export default function App() {
 
   // Navigation state
   const [activeTab, setActiveTab] = useState<string>('meu_dia');
+
+  // Merlin Rules Engine Instance & Execution
+  const rulesEngine = useMemo(() => new MerlinRulesEngine(), []);
+  const engineResult = useMemo(() => {
+    const result = rulesEngine.execute(clients, tasks, sales);
+    console.log('[Merlin Rules Engine] Continuous background analysis executed:', result);
+    return result;
+  }, [rulesEngine, clients, tasks, sales]);
 
   // Modal / Detail States
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -590,6 +599,7 @@ export default function App() {
               sales={sales}
               tags={tags}
               onSelectClient={setSelectedClientId}
+              engineResult={engineResult}
             />
           )}
         </div>

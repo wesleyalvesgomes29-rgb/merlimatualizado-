@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Client, Sale, Tag } from '../../../types';
+import { EngineResult } from '../../rulesEngine/types';
 import { 
   Sparkles, 
   TrendingUp, 
@@ -37,13 +38,15 @@ interface IntelligenceDashboardProps {
   sales: Sale[];
   tags: Tag[];
   onSelectClient: (id: string) => void;
+  engineResult?: EngineResult;
 }
 
 export default function IntelligenceDashboard({
   clients,
   sales,
   tags,
-  onSelectClient
+  onSelectClient,
+  engineResult
 }: IntelligenceDashboardProps) {
   // 1. STATE MANAGEMENT
   const [selectedClientId, setSelectedClientId] = useState<string>('');
