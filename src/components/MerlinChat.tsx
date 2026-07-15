@@ -55,7 +55,7 @@ export default function MerlinChat({
       const overdueTasksCount = engineResult?.overdueTasks?.length || 0;
       const totalAlerts = (engineResult?.alerts?.length || 0);
 
-      let greetingText = `Olá, Wesley! 👋 Eu sou o **Merlin**, seu Assistente Comercial Inteligente. \n\nAcabei de processar os dados da sua carteira de clientes usando o **Rules Engine** e identifiquei o seguinte status para hoje: \n`;
+      let greetingText = `Olá, corretor! 👋 Eu sou o **Merlin**, seu Assistente Comercial Inteligente. \n\nAcabei de processar os dados da sua carteira de clientes usando o **Rules Engine** e identifiquei o seguinte status para hoje: \n`;
 
       if (highPriorityCount > 0) {
         greetingText += `🔥 **${highPriorityCount}** cliente${highPriorityCount > 1 ? 's com alta prioridade' : ' com alta prioridade'} precisando de contato urgente.\n`;
@@ -121,7 +121,7 @@ export default function MerlinChat({
       }
 
       const data = await response.json();
-      const replyText = data.text || 'Desculpe, Wesley, tive um problema ao processar sua solicitação.';
+      const replyText = data.text || 'Desculpe, corretor, tive um problema ao processar sua solicitação.';
 
       setMessages(prev => [
         ...prev,
@@ -139,7 +139,7 @@ export default function MerlinChat({
         {
           id: `error-${Date.now()}`,
           sender: 'merlin',
-          text: `⚠️ **Ops, Wesley!** Tive uma falha de conexão temporária ao consultar meu cérebro de IA: *${error.message || 'Verifique se o servidor está rodando.'}*\n\nTente novamente em alguns instantes.`,
+          text: `⚠️ **Ops, corretor!** Tive uma falha de conexão temporária ao consultar meu cérebro de IA: *${error.message || 'Verifique se o servidor está rodando.'}*\n\nTente novamente em alguns instantes.`,
           timestamp: new Date()
         }
       ]);

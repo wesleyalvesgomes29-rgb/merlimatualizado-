@@ -351,7 +351,7 @@ export default function App() {
               <Sparkles className="h-5 w-5 text-slate-900 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight font-display">Merlin</h1>
+              <h1 className="text-xl font-extrabold tracking-tight font-display">Merlin CRM</h1>
               <span className="text-[10px] text-teal-400 font-bold uppercase tracking-widest">CRM Pessoal</span>
             </div>
           </div>
@@ -488,7 +488,7 @@ export default function App() {
           <div className="p-1.5 bg-teal-500 rounded-lg">
             <Sparkles className="h-4.5 w-4.5 text-slate-900" />
           </div>
-          <span className="font-extrabold text-lg font-display tracking-tight">Merlin</span>
+          <span className="font-extrabold text-lg font-display tracking-tight">Merlin CRM</span>
         </div>
 
         <div className="flex items-center gap-3">
