@@ -39,7 +39,7 @@ import Commissions from './components/Commissions';
 import AddClientModal from './components/AddClientModal';
 import MyRoutine from './components/MyRoutine';
 import { motion, AnimatePresence } from 'motion/react';
-import IntelligenceDashboard from './modules/intelligence/components/IntelligenceDashboard';
+import MerlinChat from './components/MerlinChat';
 
 export default function App() {
   // Global States
@@ -460,21 +460,6 @@ export default function App() {
               <LayoutDashboard className="h-4.5 w-4.5" />
               <span>Resultados</span>
             </button>
-
-            <button
-              onClick={() => setActiveTab('intelligence')}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'intelligence'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Sparkles className="h-4.5 w-4.5 text-amber-400 animate-pulse" />
-              <span className="flex items-center gap-1.5">
-                <span>Merlin Intelligence</span>
-                <span className="text-[8px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded-sm uppercase font-black">AI</span>
-              </span>
-            </button>
           </nav>
         </div>
 
@@ -530,9 +515,12 @@ export default function App() {
             <MyDay
               clients={clients}
               tags={tags}
+              sales={sales}
+              tasks={tasks}
               onSelectClient={setSelectedClientId}
               onQuickContact={handleQuickContact}
               onQuickReschedule={handleQuickReschedule}
+              engineResult={engineResult}
             />
           )}
 
@@ -594,13 +582,22 @@ export default function App() {
           )}
 
           {activeTab === 'intelligence' && (
-            <IntelligenceDashboard
-              clients={clients}
-              sales={sales}
-              tags={tags}
-              onSelectClient={setSelectedClientId}
-              engineResult={engineResult}
-            />
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-black text-slate-100 font-display">Assistente Merlin</h1>
+                <p className="text-slate-400 text-xs font-semibold">
+                  Seu consultor comercial tático e redator de mensagens pessoal. Use a conversa para redigir abordagens de WhatsApp para clientes, analisar sua carteira ou obter conselhos práticos de vendas.
+                </p>
+              </div>
+              <MerlinChat
+                clients={clients}
+                tasks={tasks}
+                sales={sales}
+                engineResult={engineResult}
+                compact={false}
+                onSelectClient={setSelectedClientId}
+              />
+            </div>
           )}
         </div>
       </main>
@@ -675,16 +672,6 @@ export default function App() {
         >
           <LayoutDashboard className="h-5 w-5" />
           <span className="text-[9px] font-bold mt-1">Resultados</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('intelligence')}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-            activeTab === 'intelligence' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Sparkles className="h-5 w-5 text-amber-400" />
-          <span className="text-[9px] font-bold mt-1">Inteligência</span>
         </button>
       </nav>
 

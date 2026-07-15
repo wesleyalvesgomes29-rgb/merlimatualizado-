@@ -143,6 +143,103 @@ Seja direto, motivador e focado em resultados rápidos. Retorne a resposta em fo
   }
 });
 
+// API Route: Conversation with Merlin Assistant using CRM Context
+app.post("/api/gemini/chat", async (req, res) => {
+  try {
+    const { message, history, clients, tasks, sales, engineResult } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "A mensagem do usuário é obrigatória." });
+    }
+
+    const ai = getGoogleGenAI();
+
+    // Serialize basic statistics for prompt injection
+    const totalLeads = clients ? clients.length : 0;
+    const salesCount = sales ? sales.length : 0;
+    const totalCommission = sales ? sales.reduce((sum: number, sale: any) => sum + (sale.commissionValue || 0), 0) : 0;
+
+    const clientsListBrief = clients ? clients.map((c: any) => ({
+      name: c.name,
+      phone: c.phone,
+      status: c.status,
+      empreendimento: c.empreendimento || "Nenhum",
+      origem: c.origem || "Não informado",
+      notes: c.notes || "",
+      lastContactDate: c.lastContactDate || "",
+      nextContactDate: c.nextContactDate || "",
+      tags: c.tags || []
+    })) : [];
+
+    const prioritiesBrief = engineResult?.priorities ? engineResult.priorities.map((p: any) => ({
+      clientName: p.clientName,
+      title: p.title,
+      description: p.description,
+      severity: p.severity
+    })) : [];
+
+    const alertsBrief = engineResult?.alerts ? engineResult.alerts.map((a: any) => ({
+      clientName: a.clientName,
+      title: a.title,
+      description: a.description,
+      category: a.category
+    })) : [];
+
+    const todayTasksBrief = engineResult?.todayTasks ? engineResult.todayTasks.map((t: any) => ({
+      clientName: t.clientName,
+      title: t.title,
+      description: t.description
+    })) : [];
+
+    const overdueTasksBrief = engineResult?.overdueTasks ? engineResult.overdueTasks.map((t: any) => ({
+      clientName: t.clientName,
+      title: t.title,
+      description: t.description
+    })) : [];
+
+    const systemPrompt = `Você é o Merlin, o assistente comercial pessoal e consultor estratégico de vendas integrado ao CRM de um corretor de imóveis chamado Wesley.
+Sua personalidade é extremamente humana, prestativa, entusiasmada, direta, confiante e focada em resultados reais de vendas (fechar negócios, resgatar contatos e gerenciar tarefas de forma impecável).
+O cérebro do Merlin é a IA, seus dados são o CRM, seus olhos são o Rules Engine e o chat é a sua forma de se comunicar.
+
+Aqui estão os dados reais da carteira do Wesley no CRM neste momento. Baseie suas respostas 100% nestes dados! Se o Wesley pedir para preparar mensagens ou analisar clientes, cite apenas pessoas que realmente existam nesta lista:
+
+1. CLIENTES CADASTRADOS (Total: ${totalLeads}):
+${JSON.stringify(clientsListBrief.slice(0, 40), null, 2)}
+
+2. ANÁLISE DO RULES ENGINE (OLHOS DO MERLIN):
+- Clientes de Alta Prioridade: ${JSON.stringify(prioritiesBrief, null, 2)}
+- Alertas e Gargalos Gerais: ${JSON.stringify(alertsBrief, null, 2)}
+- Tarefas Agendadas para Hoje: ${JSON.stringify(todayTasksBrief, null, 2)}
+- Tarefas Atrasadas/Pendentes: ${JSON.stringify(overdueTasksBrief, null, 2)}
+
+3. DADOS DE VENDAS E PERFORMANCE:
+- Quantidade de vendas fechadas: ${salesCount}
+- Comissão acumulada do corretor: R$ ${totalCommission.toLocaleString('pt-BR')}
+
+Diretrizes de resposta (Siga à risca!):
+- Cumprimente o corretor tratando-o carinhosamente de "Wesley" (ou "corretor" se de alguma forma o nome não encaixar). Ex: "Olá, Wesley! 👋" ou "Bom dia, Wesley!".
+- Quando ele perguntar "quais clientes chamar hoje?", "o que fazer hoje?" ou "quais as prioridades?", faça uma síntese direta dos Clientes de Alta Prioridade e Tarefas Atrasadas. Cite os nomes deles e as ações recomendadas (ex: "João Silva - pendente de simulação há 5 dias"). Organize em formato de lista Markdown elegante.
+- Se ele solicitar scripts ou mensagens para um cliente (ex: "Crie uma mensagem para a Franciene"), procure o cliente pelo nome aproximado nos Clientes Cadastrados. Se achar, use o empreendimento dele e o histórico para formular uma mensagem de WhatsApp fantástica, amigável, humana, natural, com quebras de linha e gatilhos amigáveis (ex: "Oi Franciene, tudo bem? Vi aqui que..."). Retorne o texto pronto para ser copiado. Se não achar o cliente por esse nome exato, pergunte educadamente sobre qual cliente ele está se referindo ou peça mais detalhes.
+- Se ele pedir uma análise geral ou de performance da carteira, use os dados acima para destacar pontos fortes e os principais gargalos (ex: "Você tem X clientes sem retorno marcado. Vamos agendar para eles hoje?").
+- Use sempre um tom profissional de parceria, de um gerente ou mentor que quer ver o Wesley bater a meta de comissão acumulada (atualmente de R$ ${totalCommission.toLocaleString('pt-BR')}).
+- Apresente tudo formatado de forma limpa, com subtítulos e bullet points, mas NUNCA mostre estruturas de código JSON na resposta final para o Wesley.`;
+
+    const userPrompt = `Histórico recente do chat:
+${history ? history.map((h: any) => `${h.sender === "user" ? "Corretor" : "Merlin"}: ${h.text}`).join("\n") : ""}
+
+Última mensagem do Corretor (Wesley):
+"${message}"
+
+Escreva sua resposta de forma direta, amigável e extremamente acionável:`;
+
+    const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.75);
+    res.json({ text });
+  } catch (error: any) {
+    console.error("Erro no chat do Merlin:", error);
+    res.status(500).json({ error: error.message || "Erro interno do servidor no chat do Merlin." });
+  }
+});
+
 // Serve frontend assets using Vite middleware or static files
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
