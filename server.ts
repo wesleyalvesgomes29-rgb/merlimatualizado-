@@ -146,7 +146,7 @@ Seja direto, motivador e focado em resultados rápidos. Retorne a resposta em fo
 // API Route: Conversation with Merlin Assistant using CRM Context
 app.post("/api/gemini/chat", async (req, res) => {
   try {
-    const { message, history, clients, tasks, sales, engineResult } = req.body;
+    const { message, history, clients, tasks, sales, engineResult, brokerMemory, brokerLearnedProfile } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: "A mensagem do usuário é obrigatória." });
@@ -215,6 +215,21 @@ ${JSON.stringify(clientsListBrief.slice(0, 40), null, 2)}
 3. DADOS DE VENDAS E PERFORMANCE:
 - Quantidade de vendas fechadas: ${salesCount}
 - Comissão acumulada do corretor: R$ ${totalCommission.toLocaleString('pt-BR')}
+
+${brokerLearnedProfile ? `4. PERFIL DE TRABALHO E COMUNICAÇÃO DO CORRETOR (MEMÓRIA APRENDIDA):
+- Estilo de Comunicação Aprendido: ${brokerLearnedProfile.communicationStyle}
+- Forma de Abordagem Aprendida: ${brokerLearnedProfile.approachStyle}
+- Preferências de Atendimento: ${brokerLearnedProfile.preferences}
+- Padrões de Sucesso Aprendidos: ${brokerLearnedProfile.winningPatterns}
+
+*Diretriz de Aprendizado*: Adapte todas as abordagens, scripts, sugestões de conversas e orientações aos pontos acima. Respeite o estilo e a forma de trabalho do corretor, aprimorando-a estrategicamente.
+` : ''}
+
+${brokerMemory && brokerMemory.length > 0 ? `5. HISTÓRICO RECENTE DE INTERAÇÕES E MEMÓRIA DE USO DO CORRETOR:
+${JSON.stringify(brokerMemory.slice(0, 10), null, 2)}
+
+*Diretriz de Uso*: Use este histórico para entender quais mensagens foram geradas, quais foram copiadas e quais interações (como comentários e status) o corretor executou ultimamente. Dê retornos acionáveis que usem esse contexto!
+` : ''}
 
 Diretrizes de resposta (Siga à risca!):
 - Cumprimente o usuário tratando-o carinhosamente como "corretor" (ou pelo nome dele caso o sistema envie um nome específico de usuário autenticado no futuro, mas atualmente utilize o termo "corretor"). Nunca utilize referências fixas ao nome "Wesley". Ex: "Olá, corretor! 👋" ou "Bom dia, corretor!".

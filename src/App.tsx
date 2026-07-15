@@ -12,7 +12,8 @@ import {
   getClientAlerts,
   isToday,
   getStoredTasks,
-  saveStoredTasks
+  saveStoredTasks,
+  addBrokerMemoryEntry
 } from './lib/storage';
 import { MerlinRulesEngine } from './modules/rulesEngine/engine';
 import { 
@@ -137,10 +138,26 @@ export default function App() {
     const updatedClients = [newClient, ...clients];
     setClients(updatedClients);
     saveStoredClients(updatedClients);
+    addBrokerMemoryEntry('client_created', `Cadastrou o lead "${newClient.name}" para o empreendimento "${newClient.empreendimento || 'Nenhum'}"`, newClient.id, newClient.name);
     setIsAddingClient(false);
   };
 
   const handleUpdateClient = (updatedClient: Client) => {
+    const previous = clients.find(c => c.id === updatedClient.id);
+    if (previous) {
+      if (updatedClient.comments.length > previous.comments.length) {
+        const newComment = updatedClient.comments[0];
+        if (newComment) {
+          addBrokerMemoryEntry('comment_added', `Adicionou observação: "${newComment.text}"`, updatedClient.id, updatedClient.name);
+        }
+      }
+      if (updatedClient.contactCount > previous.contactCount) {
+        addBrokerMemoryEntry('contact_registered', `Registrou atendimento ao cliente (Total: ${updatedClient.contactCount} contatos)`, updatedClient.id, updatedClient.name);
+      }
+      if (updatedClient.status !== previous.status) {
+        addBrokerMemoryEntry('status_changed', `Moveu o cliente de "${previous.status}" para "${updatedClient.status}"`, updatedClient.id, updatedClient.name);
+      }
+    }
     const updated = clients.map(c => c.id === updatedClient.id ? updatedClient : c);
     setClients(updated);
     saveStoredClients(updated);
@@ -286,6 +303,7 @@ export default function App() {
     const updated = [newSale, ...sales];
     setSales(updated);
     saveStoredSales(updated);
+    addBrokerMemoryEntry('sale_added', `Venda Realizada! Comissão de R$ ${saleData.commissionValue.toLocaleString('pt-BR')} gerada com o cliente "${saleData.clientName}"`, saleData.clientId, saleData.clientName);
   };
 
   const handleDeleteSale = (saleId: string) => {
@@ -307,9 +325,38 @@ export default function App() {
   };
 
   const handleToggleTaskComplete = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      const nextCompleted = !task.completed;
+      if (nextCompleted) {
+        addBrokerMemoryEntry('task_completed', `Concluiu a tarefa de "${task.actionType}" - "${task.notes || 'Sem observações adicionais.'}"`, task.clientId, task.clientName);
+      }
+    }
     const updated = tasks.map(t => 
       t.id === taskId ? { ...t, completed: !t.completed } : t
     );
+    setClients(prevClients => {
+      // In case we want to trigger a client history update on task complete as well:
+      if (task?.clientId) {
+        return prevClients.map(c => {
+          if (c.id === task.clientId) {
+            return {
+              ...c,
+              history: [
+                {
+                  id: Math.random().toString(),
+                  date: new Date().toISOString(),
+                  action: `Tarefa concluída: "${task.actionType}"`
+                },
+                ...c.history
+              ]
+            };
+          }
+          return c;
+        });
+      }
+      return prevClients;
+    });
     setTasks(updated);
     saveStoredTasks(updated);
   };
