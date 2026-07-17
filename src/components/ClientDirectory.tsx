@@ -53,6 +53,8 @@ interface ClientDirectoryProps {
     status: ClientStatus;
     notes: string;
   }[]) => void;
+  initialSpecialFilter?: 'all' | 'high_priority' | 'no_next_contact';
+  onSpecialFilterChange?: (filter: 'all' | 'high_priority' | 'no_next_contact') => void;
 }
 
 export default function ClientDirectory({
@@ -62,14 +64,29 @@ export default function ClientDirectory({
   onAddClient,
   onDeleteClient,
   onCreateTag,
-  onImportClients
+  onImportClients,
+  initialSpecialFilter = 'all',
+  onSpecialFilterChange
 }: ClientDirectoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
+  const [selectedSpecialFilter, setSelectedSpecialFilter] = useState<'all' | 'high_priority' | 'no_next_contact'>(initialSpecialFilter);
   const [showTagCreator, setShowTagCreator] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('bg-teal-100 text-teal-800 border-teal-300');
+
+  // Sync initialSpecialFilter prop
+  React.useEffect(() => {
+    setSelectedSpecialFilter(initialSpecialFilter);
+  }, [initialSpecialFilter]);
+
+  const handleSpecialFilterChange = (val: 'all' | 'high_priority' | 'no_next_contact') => {
+    setSelectedSpecialFilter(val);
+    if (onSpecialFilterChange) {
+      onSpecialFilterChange(val);
+    }
+  };
 
   // Excel Import / Export States
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -200,6 +217,31 @@ export default function ClientDirectory({
     alert(`${validRows.length} leads importados com sucesso!`);
   };
 
+  // Helpers for special filters
+  const isClientHighPriority = (client: Client) => {
+    const alerts = getClientAlerts(client);
+    if (alerts.isUrgente) return true;
+    
+    if (client.status === 'Proposta' || client.status === 'Documentação' || client.status === 'Visitou') {
+      return true;
+    }
+    
+    const tagsLower = (client.tags || []).map(t => t.toLowerCase());
+    if (tagsLower.includes('urgente') || tagsLower.includes('alta prioridade') || tagsLower.includes('investidor')) {
+      return true;
+    }
+    
+    if (client.contactCount >= 8) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  const isClientNoNextContact = (client: Client) => {
+    return !client.nextContactDate && client.status !== 'Venda Fechada' && client.status !== 'Perdido';
+  };
+
   // Instant filtering
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
@@ -215,9 +257,17 @@ export default function ClientDirectory({
       // 3. Status filter
       const matchesStatus = selectedStatusFilter === 'all' || client.status === selectedStatusFilter;
 
-      return matchesSearch && matchesTag && matchesStatus;
+      // 4. Special filter
+      let matchesSpecial = true;
+      if (selectedSpecialFilter === 'high_priority') {
+        matchesSpecial = isClientHighPriority(client);
+      } else if (selectedSpecialFilter === 'no_next_contact') {
+        matchesSpecial = isClientNoNextContact(client);
+      }
+
+      return matchesSearch && matchesTag && matchesStatus && matchesSpecial;
     });
-  }, [clients, searchTerm, selectedTagFilter, selectedStatusFilter]);
+  }, [clients, searchTerm, selectedTagFilter, selectedStatusFilter, selectedSpecialFilter]);
 
   return (
     <div className="space-y-6" id="client-directory-panel">
@@ -391,6 +441,20 @@ export default function ClientDirectory({
               <option value="Documentação">Documentação</option>
               <option value="Venda Fechada">Venda Fechada</option>
               <option value="Perdido">Perdido</option>
+            </select>
+          </div>
+
+          {/* Special Filter */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={selectedSpecialFilter}
+              onChange={(e) => handleSpecialFilterChange(e.target.value as any)}
+              className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-2 focus:ring-teal-500/20"
+              id="filter-special-select"
+            >
+              <option value="all">Todos os Alertas</option>
+              <option value="high_priority">Alta Prioridade</option>
+              <option value="no_next_contact">Sem Retorno Agendado</option>
             </select>
           </div>
         </div>

@@ -31,6 +31,8 @@ interface MyRoutineProps {
   onToggleTaskComplete: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onSelectClient: (clientId: string) => void;
+  showTodayOnly?: boolean;
+  onClearTodayOnly?: () => void;
 }
 
 const ACTION_TYPES = [
@@ -49,7 +51,9 @@ export default function MyRoutine({
   onAddTask,
   onToggleTaskComplete,
   onDeleteTask,
-  onSelectClient
+  onSelectClient,
+  showTodayOnly = false,
+  onClearTodayOnly
 }: MyRoutineProps) {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'completed'>('pending');
@@ -394,26 +398,43 @@ export default function MyRoutine({
         </button>
       </div>
 
-      {/* Main Routine Columns Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Column 1: Atrasadas */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <AlertCircle className={`h-4.5 w-4.5 ${categories.overdue.length > 0 ? 'text-rose-500' : 'text-slate-400'}`} />
-            <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-              Tarefas Atrasadas
-            </h2>
-            <span className="text-[10px] bg-rose-500/15 text-rose-500 dark:text-rose-400 font-extrabold px-1.5 py-0.2 rounded-full font-mono">
-              {filterList(categories.overdue).length}
-            </span>
+      {showTodayOnly && (
+        <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 flex items-center justify-between text-xs text-teal-600 dark:text-teal-400">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span>Visualizando apenas tarefas agendadas para hoje.</span>
           </div>
-          {renderTaskList(
-            categories.overdue, 
-            'Atrasadas', 
-            'Excelente! Nenhuma tarefa atrasada por aqui.', 
-            'rose'
-          )}
+          <button 
+            onClick={onClearTodayOnly}
+            className="underline hover:text-teal-700 dark:hover:text-teal-300 font-bold cursor-pointer"
+          >
+            Mostrar todas as datas
+          </button>
         </div>
+      )}
+
+      {/* Main Routine Columns Layout */}
+      <div className={`grid grid-cols-1 ${showTodayOnly ? 'lg:grid-cols-1 max-w-2xl mx-auto' : 'lg:grid-cols-3'} gap-6`}>
+        {/* Column 1: Atrasadas */}
+        {!showTodayOnly && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <AlertCircle className={`h-4.5 w-4.5 ${categories.overdue.length > 0 ? 'text-rose-500' : 'text-slate-400'}`} />
+              <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                Tarefas Atrasadas
+              </h2>
+              <span className="text-[10px] bg-rose-500/15 text-rose-500 dark:text-rose-400 font-extrabold px-1.5 py-0.2 rounded-full font-mono">
+                {filterList(categories.overdue).length}
+              </span>
+            </div>
+            {renderTaskList(
+              categories.overdue, 
+              'Atrasadas', 
+              'Excelente! Nenhuma tarefa atrasada por aqui.', 
+              'rose'
+            )}
+          </div>
+        )}
 
         {/* Column 2: Hoje */}
         <div className="space-y-3">
@@ -435,23 +456,25 @@ export default function MyRoutine({
         </div>
 
         {/* Column 3: Próximas */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Clock className="h-4.5 w-4.5 text-indigo-500" />
-            <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-              Próximas Tarefas
-            </h2>
-            <span className="text-[10px] bg-indigo-500/15 text-indigo-500 dark:text-indigo-400 font-extrabold px-1.5 py-0.2 rounded-full font-mono">
-              {filterList(categories.upcoming).length}
-            </span>
+        {!showTodayOnly && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <Clock className="h-4.5 w-4.5 text-indigo-500" />
+              <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                Próximas Tarefas
+              </h2>
+              <span className="text-[10px] bg-indigo-500/15 text-indigo-500 dark:text-indigo-400 font-extrabold px-1.5 py-0.2 rounded-full font-mono">
+                {filterList(categories.upcoming).length}
+              </span>
+            </div>
+            {renderTaskList(
+              categories.upcoming, 
+              'Próximas', 
+              'Nenhuma tarefa futura agendada no momento.', 
+              'indigo'
+            )}
           </div>
-          {renderTaskList(
-            categories.upcoming, 
-            'Próximas', 
-            'Nenhuma tarefa futura agendada no momento.', 
-            'indigo'
-          )}
-        </div>
+        )}
       </div>
 
       {/* Task Creation Modal */}

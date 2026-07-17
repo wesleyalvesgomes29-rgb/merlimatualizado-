@@ -22,17 +22,94 @@ interface KanbanProps {
   onAddClient: (initialStatus?: ClientStatus) => void;
 }
 
-const COLUMNS: { id: ClientStatus; title: string; color: string; bg: string }[] = [
-  { id: 'Lead Novo', title: 'Lead Novo', color: 'text-emerald-700 dark:text-emerald-400 border-emerald-500', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20' },
-  { id: 'Contato', title: 'Contato', color: 'text-blue-700 dark:text-blue-400 border-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-950/20' },
-  { id: 'Em Atendimento', title: 'Em Atendimento', color: 'text-purple-700 dark:text-purple-400 border-purple-500', bg: 'bg-purple-50/50 dark:bg-purple-950/20' },
-  { id: 'Retrabalho', title: 'Retrabalho', color: 'text-amber-700 dark:text-amber-400 border-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-950/20' },
-  { id: 'Agendado', title: 'Agendado', color: 'text-violet-700 dark:text-violet-400 border-violet-500', bg: 'bg-violet-50/50 dark:bg-violet-950/20' },
-  { id: 'Visitou', title: 'Visitou', color: 'text-sky-700 dark:text-sky-400 border-sky-500', bg: 'bg-sky-50/50 dark:bg-sky-950/20' },
-  { id: 'Proposta', title: 'Proposta', color: 'text-yellow-700 dark:text-yellow-400 border-yellow-500', bg: 'bg-yellow-50/50 dark:bg-yellow-950/20' },
-  { id: 'Documentação', title: 'Documentação', color: 'text-teal-700 dark:text-teal-400 border-teal-500', bg: 'bg-teal-50/50 dark:bg-teal-950/20' },
-  { id: 'Venda Fechada', title: 'Venda Fechada', color: 'text-green-700 dark:text-green-400 border-green-500', bg: 'bg-green-50/50 dark:bg-green-950/20 font-bold' },
-  { id: 'Perdido', title: 'Perdido', color: 'text-rose-700 dark:text-rose-400 border-rose-500', bg: 'bg-rose-50/50 dark:bg-rose-950/20' }
+const COLUMNS: { 
+  id: ClientStatus; 
+  title: string; 
+  color: string; 
+  bg: string;
+  barColor: string;
+  titleColor: string;
+}[] = [
+  { 
+    id: 'Lead Novo', 
+    title: 'Lead Novo', 
+    color: 'text-emerald-700 dark:text-emerald-400 border-emerald-500', 
+    bg: 'bg-emerald-50/50 dark:bg-emerald-950/20',
+    barColor: 'bg-green-500',
+    titleColor: 'text-green-600 dark:text-green-400'
+  },
+  { 
+    id: 'Contato', 
+    title: 'Contato', 
+    color: 'text-blue-700 dark:text-blue-400 border-blue-500', 
+    bg: 'bg-blue-50/50 dark:bg-blue-950/20',
+    barColor: 'bg-green-500',
+    titleColor: 'text-green-600 dark:text-green-400'
+  },
+  { 
+    id: 'Em Atendimento', 
+    title: 'Em Atendimento', 
+    color: 'text-purple-700 dark:text-purple-400 border-purple-500', 
+    bg: 'bg-purple-50/50 dark:bg-purple-950/20',
+    barColor: 'bg-blue-500',
+    titleColor: 'text-blue-600 dark:text-blue-400'
+  },
+  { 
+    id: 'Retrabalho', 
+    title: 'Retrabalho', 
+    color: 'text-amber-700 dark:text-amber-400 border-amber-500', 
+    bg: 'bg-amber-50/50 dark:bg-amber-950/20',
+    barColor: 'bg-yellow-500',
+    titleColor: 'text-yellow-600 dark:text-yellow-400'
+  },
+  { 
+    id: 'Agendado', 
+    title: 'Agendado', 
+    color: 'text-violet-700 dark:text-violet-400 border-violet-500', 
+    bg: 'bg-violet-50/50 dark:bg-violet-950/20',
+    barColor: 'bg-yellow-500',
+    titleColor: 'text-yellow-600 dark:text-yellow-400'
+  },
+  { 
+    id: 'Visitou', 
+    title: 'Visitou', 
+    color: 'text-sky-700 dark:text-sky-400 border-sky-500', 
+    bg: 'bg-sky-50/50 dark:bg-sky-950/20',
+    barColor: 'bg-orange-500',
+    titleColor: 'text-orange-600 dark:text-orange-400'
+  },
+  { 
+    id: 'Proposta', 
+    title: 'Proposta', 
+    color: 'text-yellow-700 dark:text-yellow-400 border-yellow-500', 
+    bg: 'bg-yellow-50/50 dark:bg-yellow-950/20',
+    barColor: 'bg-orange-500',
+    titleColor: 'text-orange-600 dark:text-orange-400'
+  },
+  { 
+    id: 'Documentação', 
+    title: 'Documentação', 
+    color: 'text-teal-700 dark:text-teal-400 border-teal-500', 
+    bg: 'bg-teal-50/50 dark:bg-teal-950/20',
+    barColor: 'bg-purple-500',
+    titleColor: 'text-purple-600 dark:text-purple-400'
+  },
+  { 
+    id: 'Venda Fechada', 
+    title: 'Venda Fechada', 
+    color: 'text-green-700 dark:text-green-400 border-green-500', 
+    bg: 'bg-green-50/50 dark:bg-green-950/20 font-bold',
+    barColor: 'bg-emerald-500',
+    titleColor: 'text-emerald-500 dark:text-emerald-400 font-extrabold'
+  },
+  { 
+    id: 'Perdido', 
+    title: 'Perdido', 
+    color: 'text-rose-700 dark:text-rose-400 border-rose-500', 
+    bg: 'bg-rose-50/50 dark:bg-rose-950/20',
+    barColor: 'bg-slate-500',
+    titleColor: 'text-slate-500 dark:text-slate-400'
+  }
 ];
 
 export default function Kanban({
@@ -108,13 +185,14 @@ export default function Kanban({
               }`}
               id={`kanban-column-${column.id.toLowerCase().replace(/\s+/g, '-')}`}
             >
+              {/* Colored top bar representing the stage's distinct palette color */}
+              <div className={`h-1.5 w-full ${column.barColor} rounded-t-[14px]`} />
+
               {/* Lane Header */}
-              <div className="p-3.5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-t-2xl">
+              <div className="p-3.5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-b-none">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${
-                    column.id === 'Venda Fechada' ? 'bg-green-500' : column.id === 'Perdido' ? 'bg-red-500' : 'bg-teal-500'
-                  }`} />
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">{column.title}</h3>
+                  <span className={`w-2.5 h-2.5 rounded-full ${column.barColor}`} />
+                  <h3 className={`font-bold text-sm ${column.titleColor}`}>{column.title}</h3>
                 </div>
                 <span className="text-xs font-mono font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 h-5 px-1.5 rounded-md flex items-center justify-center">
                   {columnClients.length}

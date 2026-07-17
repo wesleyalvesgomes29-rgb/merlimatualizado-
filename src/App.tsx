@@ -53,6 +53,30 @@ export default function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState<string>('meu_dia');
 
+  // Filter overrides for navigation shortcuts
+  const [clientSpecialFilter, setClientSpecialFilter] = useState<'all' | 'high_priority' | 'no_next_contact'>('all');
+  const [routineTodayOnly, setRoutineTodayOnly] = useState<boolean>(false);
+
+  const handleTabChange = (tabName: string) => {
+    setActiveTab(tabName);
+    if (tabName !== 'clientes') {
+      setClientSpecialFilter('all');
+    }
+    if (tabName !== 'rotina') {
+      setRoutineTodayOnly(false);
+    }
+  };
+
+  const handleNavigateToClientsWithFilter = (filterType: 'high_priority' | 'no_next_contact') => {
+    setClientSpecialFilter(filterType);
+    setActiveTab('clientes');
+  };
+
+  const handleNavigateToTasksWithFilter = (todayOnly: boolean) => {
+    setRoutineTodayOnly(todayOnly);
+    setActiveTab('rotina');
+  };
+
   // Merlin Rules Engine Instance & Execution
   const rulesEngine = useMemo(() => new MerlinRulesEngine(), []);
   const engineResult = useMemo(() => {
@@ -419,7 +443,7 @@ export default function App() {
           {/* Navigation Links */}
           <nav className="space-y-1">
             <button
-              onClick={() => setActiveTab('meu_dia')}
+              onClick={() => handleTabChange('meu_dia')}
               className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'meu_dia'
                   ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -440,7 +464,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('rotina')}
+              onClick={() => handleTabChange('rotina')}
               className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'rotina'
                   ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -461,7 +485,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('funil')}
+              onClick={() => handleTabChange('funil')}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'funil'
                   ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -473,7 +497,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('clientes')}
+              onClick={() => handleTabChange('clientes')}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'clientes'
                   ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -485,7 +509,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('comissoes')}
+              onClick={() => handleTabChange('comissoes')}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'comissoes'
                   ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -497,7 +521,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => handleTabChange('dashboard')}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'dashboard'
                   ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
@@ -568,6 +592,8 @@ export default function App() {
               onQuickContact={handleQuickContact}
               onQuickReschedule={handleQuickReschedule}
               engineResult={engineResult}
+              onNavigateToClientsWithFilter={handleNavigateToClientsWithFilter}
+              onNavigateToTasksWithFilter={handleNavigateToTasksWithFilter}
             />
           )}
 
@@ -579,6 +605,8 @@ export default function App() {
               onToggleTaskComplete={handleToggleTaskComplete}
               onDeleteTask={handleDeleteTask}
               onSelectClient={setSelectedClientId}
+              showTodayOnly={routineTodayOnly}
+              onClearTodayOnly={() => setRoutineTodayOnly(false)}
             />
           )}
 
@@ -607,6 +635,8 @@ export default function App() {
               onDeleteClient={handleDeleteClient}
               onCreateTag={handleCreateTag}
               onImportClients={handleImportClients}
+              initialSpecialFilter={clientSpecialFilter}
+              onSpecialFilterChange={setClientSpecialFilter}
             />
           )}
 
@@ -652,7 +682,7 @@ export default function App() {
       {/* 4. MOBILE BOTTOM BAR NAVIGATION */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-400 border-t border-slate-800 z-40 flex items-center justify-around h-16 shadow-2xl">
         <button
-          onClick={() => setActiveTab('meu_dia')}
+          onClick={() => handleTabChange('meu_dia')}
           className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
             activeTab === 'meu_dia' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
           }`}
@@ -667,7 +697,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('rotina')}
+          onClick={() => handleTabChange('rotina')}
           className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
             activeTab === 'rotina' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
           }`}
@@ -682,7 +712,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('funil')}
+          onClick={() => handleTabChange('funil')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             activeTab === 'funil' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
           }`}
@@ -692,7 +722,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('clientes')}
+          onClick={() => handleTabChange('clientes')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             activeTab === 'clientes' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
           }`}
@@ -702,7 +732,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('comissoes')}
+          onClick={() => handleTabChange('comissoes')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             activeTab === 'comissoes' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
           }`}
@@ -712,7 +742,7 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => handleTabChange('dashboard')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             activeTab === 'dashboard' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
           }`}
@@ -730,6 +760,10 @@ export default function App() {
             tags={tags}
             onClose={() => setSelectedClientId(null)}
             onUpdateClient={handleUpdateClient}
+            tasks={tasks}
+            onAddTask={handleAddTask}
+            onToggleTaskComplete={handleToggleTaskComplete}
+            onDeleteTask={handleDeleteTask}
           />
         )}
       </AnimatePresence>
