@@ -1,22 +1,22 @@
 import { Client, Tag, Sale } from '../types';
 
 export const DEFAULT_TAGS: Tag[] = [
-  { id: '1', name: 'Lead Novo', color: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800' },
-  { id: '2', name: 'Primeiro Contato', color: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800' },
-  { id: '3', name: 'Sem Resposta', color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700' },
-  { id: '4', name: 'Retornar Hoje', color: 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800' },
-  { id: '5', name: 'Retornar Amanhã', color: 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-800' },
-  { id: '6', name: 'Interessado', color: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800' },
-  { id: '7', name: 'Muito Interessado', color: 'bg-pink-100 dark:bg-pink-950 text-pink-800 dark:text-pink-300 border-pink-300 dark:border-pink-800' },
-  { id: '8', name: 'Agendado', color: 'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800' },
-  { id: '9', name: 'Visitou', color: 'bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800' },
-  { id: '10', name: 'Proposta', color: 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800' },
-  { id: '11', name: 'Documentação', color: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-800' },
-  { id: '12', name: 'Cliente Frio', color: 'bg-cyan-50 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800' },
-  { id: '13', name: 'Retrabalho', color: 'bg-orange-100 dark:bg-orange-950 text-amber-900 dark:text-amber-400 border-amber-400 dark:border-amber-800 font-medium' },
-  { id: '14', name: 'Venda Fechada', color: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 border-green-300 dark:border-green-800 font-semibold' },
-  { id: '15', name: 'Perdido', color: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900' },
-  { id: '16', name: 'Descarte', color: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700' }
+  { id: '1', name: 'Lead Novo', color: 'bg-orange-500/10 dark:bg-[#FD7A00]/15 text-orange-600 dark:text-[#FD7A00] border-orange-500/30 dark:border-[#FD7A00]/40' },
+  { id: '2', name: 'Primeiro Contato', color: 'bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-[#FBBF24] border-amber-500/30 dark:border-amber-500/40' },
+  { id: '3', name: 'Sem Resposta', color: 'bg-zinc-100 dark:bg-[#222222] text-zinc-600 dark:text-[#888888] border-zinc-200 dark:border-[#2A2A2A]' },
+  { id: '4', name: 'Retornar Hoje', color: 'bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-[#FB7185] border-rose-500/30 dark:border-rose-500/40' },
+  { id: '5', name: 'Retornar Amanhã', color: 'bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-[#FF9800] border-orange-500/30 dark:border-orange-500/40' },
+  { id: '6', name: 'Interessado', color: 'bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-[#FBBF24] border-amber-500/30 dark:border-amber-500/40' },
+  { id: '7', name: 'Muito Interessado', color: 'bg-orange-500/15 dark:bg-[#FD7A00]/20 text-orange-700 dark:text-[#FD7A00] border-orange-500/40 dark:border-[#FD7A00]/50 font-bold' },
+  { id: '8', name: 'Agendado', color: 'bg-orange-500/10 dark:bg-[#FD7A00]/15 text-orange-600 dark:text-[#FD7A00] border-orange-500/30 dark:border-[#FD7A00]/40' },
+  { id: '9', name: 'Visitou', color: 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-[#34D399] border-emerald-500/30 dark:border-emerald-500/40' },
+  { id: '10', name: 'Proposta', color: 'bg-orange-500/15 dark:bg-[#E85D00]/20 text-orange-700 dark:text-[#FF9800] border-orange-500/40 dark:border-[#E85D00]/50 font-medium' },
+  { id: '11', name: 'Documentação', color: 'bg-orange-500/10 dark:bg-[#FD7A00]/15 text-orange-600 dark:text-[#FD7A00] border-orange-500/30 dark:border-[#FD7A00]/40' },
+  { id: '12', name: 'Cliente Frio', color: 'bg-zinc-100 dark:bg-[#161616] text-zinc-600 dark:text-[#888888] border-zinc-200 dark:border-[#2A2A2A]' },
+  { id: '13', name: 'Retrabalho', color: 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-[#FBBF24] border-amber-500/40 dark:border-amber-500/50 font-medium' },
+  { id: '14', name: 'Venda Fechada', color: 'bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-700 dark:text-[#10B981] border-emerald-500/40 dark:border-emerald-500/50 font-bold' },
+  { id: '15', name: 'Perdido', color: 'bg-rose-500/10 dark:bg-rose-500/15 text-rose-700 dark:text-[#FB7185] border-rose-500/30 dark:border-rose-500/40' },
+  { id: '16', name: 'Descarte', color: 'bg-zinc-100 dark:bg-[#161616] text-zinc-500 dark:text-[#888888] border-zinc-200 dark:border-[#2A2A2A]' }
 ];
 
 export const INITIAL_CLIENTS: Client[] = [
