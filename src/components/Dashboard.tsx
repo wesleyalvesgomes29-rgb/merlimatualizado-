@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Client, Sale } from '../types';
 import { getClientAlerts, getDaysSinceContact } from '../lib/storage';
 import { 
@@ -10,7 +10,16 @@ import {
   DollarSign, 
   TrendingUp, 
   RotateCw,
-  Award
+  Award,
+  Sparkles,
+  MessageSquare,
+  ChevronRight,
+  PieChart as PieIcon,
+  Flame,
+  ArrowUpRight,
+  Clock,
+  Briefcase,
+  Target
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -35,13 +44,14 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ clients, sales, onSelectClient, onNavigate }: DashboardProps) {
+  const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+
   const referenceDate = new Date();
   const currentMonth = referenceDate.getMonth(); // 0-indexed
   const currentYear = referenceDate.getFullYear();
 
   // Metrics Calculations
   const totalClients = clients.length;
-
   const leadsNovosCount = clients.filter(c => c.status === 'Lead Novo').length;
 
   const atrasadosCount = clients.filter(c => {
@@ -61,51 +71,48 @@ export default function Dashboard({ clients, sales, onSelectClient, onNavigate }
     );
   }).length;
 
-  // Clientes para retrabalho = suggested (days since contact > 7) or has status/tag Retrabalho
+  // Clientes para retrabalho
   const retrabalhoSugeridosCount = clients.filter(c => {
     const alerts = getClientAlerts(c);
     return (alerts.isRetrabalhoSugerido || c.status === 'Retrabalho' || c.tags.includes('Retrabalho')) &&
       c.status !== 'Venda Fechada' && c.status !== 'Perdido';
   }).length;
 
-  // Sum of contactCount across all clients
-  const totalRetrabalhosFeitos = clients.reduce((sum, c) => sum + (c.contactCount || 0), 0);
-
   // Sales and commissions metrics
   const monthlySales = sales.filter(s => {
-    const sDate = new Date(s.saleDate);
+    const sDate = new Date(s.saleDate + 'T12:00:00');
     return sDate.getMonth() === currentMonth && sDate.getFullYear() === currentYear;
   });
 
   const monthlyCommissionSum = monthlySales.reduce((sum, s) => sum + s.commissionValue, 0);
+  const totalVgvSum = sales.reduce((sum, s) => sum + (s.vgv || 0), 0);
 
   // Conversion rate: Venda Fechada / (Venda Fechada + Perdido)
   const totalFechadas = clients.filter(c => c.status === 'Venda Fechada').length;
   const totalPerdidos = clients.filter(c => c.status === 'Perdido').length;
   const conversionRate = totalFechadas + totalPerdidos > 0 
     ? Math.round((totalFechadas / (totalFechadas + totalPerdidos)) * 100) 
-    : 0;
+    : totalFechadas > 0 ? 100 : 0;
 
-  // CHART DATA 1: Funnel distribution
+  // Funnel Stages Data
   const funnelStages: { name: string; value: number; color: string }[] = [
-    { name: 'Lead Novo', value: clients.filter(c => c.status === 'Lead Novo').length, color: '#10b981' },
-    { name: 'Contato', value: clients.filter(c => c.status === 'Contato').length, color: '#3b82f6' },
-    { name: 'Em Atendimento', value: clients.filter(c => c.status === 'Em Atendimento').length, color: '#8b5cf6' },
-    { name: 'Retrabalho', value: clients.filter(c => c.status === 'Retrabalho').length, color: '#f59e0b' },
-    { name: 'Agendado', value: clients.filter(c => c.status === 'Agendado').length, color: '#a855f7' },
-    { name: 'Visitou', value: clients.filter(c => c.status === 'Visitou').length, color: '#06b6d4' },
-    { name: 'Proposta', value: clients.filter(c => c.status === 'Proposta').length, color: '#eab308' },
-    { name: 'Documentação', value: clients.filter(c => c.status === 'Documentação').length, color: '#14b8a6' },
-    { name: 'Venda Fechada', value: clients.filter(c => c.status === 'Venda Fechada').length, color: '#22c55e' },
-    { name: 'Perdido', value: clients.filter(c => c.status === 'Perdido').length, color: '#ef4444' }
+    { name: 'Lead Novo', value: clients.filter(c => c.status === 'Lead Novo').length, color: '#FF7A00' },
+    { name: 'Contato', value: clients.filter(c => c.status === 'Contato').length, color: '#FF9800' },
+    { name: 'Em Atendimento', value: clients.filter(c => c.status === 'Em Atendimento').length, color: '#E85D00' },
+    { name: 'Retrabalho', value: clients.filter(c => c.status === 'Retrabalho').length, color: '#FBBF24' },
+    { name: 'Agendado', value: clients.filter(c => c.status === 'Agendado').length, color: '#FF7A00' },
+    { name: 'Visitou', value: clients.filter(c => c.status === 'Visitou').length, color: '#34D399' },
+    { name: 'Proposta', value: clients.filter(c => c.status === 'Proposta').length, color: '#FF9800' },
+    { name: 'Documentação', value: clients.filter(c => c.status === 'Documentação').length, color: '#E85D00' },
+    { name: 'Venda Fechada', value: clients.filter(c => c.status === 'Venda Fechada').length, color: '#10B981' },
+    { name: 'Perdido', value: clients.filter(c => c.status === 'Perdido').length, color: '#FB7185' }
   ];
 
-  // CHART DATA 2: Commission by Month in 2026
-  // Generate list of months
-  const monthsBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  // Commission evolution chart data for 2026
+  const monthsBR = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Dez'];
   const commissionChartData = monthsBR.map((monthName, idx) => {
     const monthSales = sales.filter(s => {
-      const sDate = new Date(s.saleDate);
+      const sDate = new Date(s.saleDate + 'T12:00:00');
       return sDate.getMonth() === idx && sDate.getFullYear() === 2026;
     });
     const totalVal = monthSales.reduce((sum, s) => sum + s.commissionValue, 0);
@@ -115,168 +122,256 @@ export default function Dashboard({ clients, sales, onSelectClient, onNavigate }
     };
   });
 
-  // CHART DATA 3: Ranking dos Esquecidos (Days without contact, for warm clients, sorted descending)
-  const warmClientsEsquecidos = clients
-    .filter(c => c.status !== 'Venda Fechada' && c.status !== 'Perdido')
-    .map(c => ({
-      name: c.name,
-      diasSemContato: getDaysSinceContact(c),
-      id: c.id
-    }))
-    .sort((a, b) => b.diasSemContato - a.diasSemContato)
-    .slice(0, 5); // top 5 neglected clients
+  // Ranking of neglected leads (Termômetro de Atenção)
+  const warmClientsEsquecidos = useMemo(() => {
+    return clients
+      .filter(c => c.status !== 'Venda Fechada' && c.status !== 'Perdido')
+      .map(c => {
+        const days = getDaysSinceContact(c);
+        return { client: c, days: days !== null ? days : 99 };
+      })
+      .sort((a, b) => b.days - a.days)
+      .slice(0, 5);
+  }, [clients]);
+
+  // Lead Origin Distribution
+  const originDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    clients.forEach(c => {
+      const orig = c.origem || 'Indicação / Outro';
+      counts[orig] = (counts[orig] || 0) + 1;
+    });
+    const COLORS = ['#FF7A00', '#FF9800', '#E85D00', '#34D399', '#FBBF24', '#FB7185'];
+    return Object.entries(counts).map(([name, value], idx) => ({
+      name,
+      value,
+      color: COLORS[idx % COLORS.length]
+    }));
+  }, [clients]);
 
   const formatCurrency = (val: number) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
+  // WhatsApp quick rescue handler
+  const handleRescueWhatsApp = (client: Client) => {
+    const cleanPhone = client.phone.replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.length <= 11 ? `55${cleanPhone}` : cleanPhone;
+    const text = encodeURIComponent(`Olá, ${client.name}! Tudo bem? Passando para te atualizar sobre as oportunidades e tirar qualquer dúvida.`);
+    window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
+  };
+
   return (
-    <div className="space-y-8" id="dashboard-panel">
-      {/* KPI Cards Bento Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI: Total Clientes */}
-        <div 
-          onClick={() => onNavigate('clientes')}
-          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md hover:border-teal-300 dark:hover:border-teal-800 transition-all cursor-pointer relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total de Clientes</span>
-            <div className="p-2 bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 rounded-xl group-hover:scale-110 transition-transform">
-              <Users className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{totalClients}</h4>
-            <p className="text-[10px] text-slate-400">Ativos no banco de dados</p>
-          </div>
+    <div className="space-y-6" id="dashboard-analytics-panel">
+      {/* 1. Header with Period Selector */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold font-display text-white flex items-center gap-2">
+            <span>Resultados &amp; Inteligência Comercial</span>
+            <span className="text-xs font-normal px-2.5 py-0.5 rounded-full bg-[#FF7A00]/10 text-[#FF7A00] border border-[#FF7A00]/20">
+              Cockpit Gerencial
+            </span>
+          </h2>
+          <p className="text-xs text-[#888888]">
+            Métricas de conversão de funil, saúde da carteira e performance financeira
+          </p>
         </div>
 
-        {/* KPI: Leads Novos */}
-        <div 
-          onClick={() => onNavigate('clientes')}
-          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Leads Novos</span>
-            <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl group-hover:scale-110 transition-transform">
-              <UserCheck className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{leadsNovosCount}</h4>
-            <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-medium">Aguardando atendimento</p>
+        <div className="flex items-center gap-2">
+          {/* Period Selector Tabs */}
+          <div className="flex items-center p-1 bg-[#0B0B0B] border border-[#303030] rounded-xl text-xs font-bold">
+            <button
+              onClick={() => setPeriod('month')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                period === 'month'
+                  ? 'bg-[#161616] text-[#FF7A00] shadow-2xs'
+                  : 'text-[#888888] hover:text-white'
+              }`}
+            >
+              Mês Vigente
+            </button>
+            <button
+              onClick={() => setPeriod('quarter')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                period === 'quarter'
+                  ? 'bg-[#161616] text-[#FF7A00] shadow-2xs'
+                  : 'text-[#888888] hover:text-white'
+              }`}
+            >
+              Trimestre
+            </button>
+            <button
+              onClick={() => setPeriod('year')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                period === 'year'
+                  ? 'bg-[#161616] text-[#FF7A00] shadow-2xs'
+                  : 'text-[#888888] hover:text-white'
+              }`}
+            >
+              Ano 2026
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* KPI: Retrabalhos / Seguidos */}
-        <div 
-          onClick={() => onNavigate('meu_dia')}
-          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800 transition-all cursor-pointer relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Para Retrabalho</span>
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl group-hover:scale-110 transition-transform">
-              <RotateCw className="h-5 w-5" />
-            </div>
+      {/* 2. Tactical Merlin Insights Card */}
+      <div className="bg-[#161616] border border-[#FF7A00]/30 rounded-3xl p-5 sm:p-6 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF7A00]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-start gap-3.5 relative z-10">
+          <div className="p-3 bg-[#FF7A00]/20 text-[#FF7A00] rounded-2xl border border-[#FF7A00]/30 flex-shrink-0">
+            <Sparkles className="h-6 w-6" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{retrabalhoSugeridosCount}</h4>
-            <p className="text-[10px] text-slate-400">
-              {totalRetrabalhosFeitos} contatos já realizados
-            </p>
-          </div>
-        </div>
-
-        {/* KPI: Clientes para Retornar Hoje */}
-        <div 
-          onClick={() => onNavigate('meu_dia')}
-          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Retornar Hoje</span>
-            <div className="p-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-xl group-hover:scale-110 transition-transform">
-              <Calendar className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">
-              {retornarHojeCount}
-            </h4>
-            <p className="text-[10px] text-rose-500 dark:text-rose-400 font-bold flex items-center gap-1">
-              {atrasadosCount > 0 && (
-                <>
-                  <AlertTriangle className="h-3 w-3 animate-pulse" />
-                  <span>{atrasadosCount} atrasados!</span>
-                </>
+            <h3 className="font-bold text-sm font-display text-[#FF7A00] uppercase tracking-wider flex items-center gap-2">
+              <span>Diagnóstico Tático Merlin</span>
+              <span className="text-[10px] bg-[#FF7A00]/20 text-[#FF7A00] px-2 py-0.5 rounded-full lowercase font-mono border border-[#FF7A00]/30">
+                automático
+              </span>
+            </h3>
+            <p className="text-xs text-[#E5E5E5] leading-relaxed max-w-2xl">
+              {atrasadosCount > 0 ? (
+                <>Você possui <strong className="text-[#FB7185] font-bold">{atrasadosCount} leads atrasados</strong>. Priorize o contato imediato hoje para evitar o esfriamento de negociações quentes.</>
+              ) : conversionRate > 50 ? (
+                <>Excelente taxa de conversão do funil (<strong className="text-[#34D399] font-bold">{conversionRate}%</strong>). Bom momento para acelerar envio de propostas e agendamento de visitas no final de semana.</>
+              ) : (
+                <>Sua carteira está ativa com <strong className="text-[#FF7A00] font-bold">{totalClients} leads</strong>. Foque na passagem de etapa de <em>Em Atendimento</em> para <em>Agendado / Visita</em> para alavancar seu VGV.</>
               )}
-              {atrasadosCount === 0 && <span>Tudo em dia</span>}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Commission Highlights */}
-      <div className="bg-slate-900 dark:bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-xl">
-            <DollarSign className="h-8 w-8" />
-          </div>
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-400">Comissão de Julho/2026</span>
-            <h2 className="text-3xl font-black mt-1 text-emerald-400">{formatCurrency(monthlyCommissionSum)}</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Refere-se a <strong>{monthlySales.length}</strong> venda{monthlySales.length > 1 ? 's fechadas' : ' fechada'} no mês corrente.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-row md:flex-col lg:flex-row gap-6 border-t md:border-t-0 border-slate-800 pt-4 md:pt-0">
-          <div className="flex-1">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Taxa de Conversão</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-extrabold text-white">{conversionRate}%</span>
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
+        <button
+          onClick={() => onNavigate('intelligence')}
+          className="bg-[#FF7A00] hover:bg-[#FF9800] text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm shadow-[#FF7A00]/30 flex-shrink-0 cursor-pointer active:scale-95 transition-all relative z-10"
+        >
+          <span>Abrir Consultor AI</span>
+          <ArrowUpRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* 3. Core KPI Bento Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* KPI 1: Leads Ativos */}
+        <div 
+          onClick={() => onNavigate('clientes')}
+          className="bg-[#161616] border border-[#303030] p-4 sm:p-5 rounded-2xl shadow-xs space-y-2 cursor-pointer hover:border-[#FF7A00]/40 transition-all"
+        >
+          <div className="flex items-center justify-between text-[#888888]">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Total de Leads</span>
+            <div className="p-2 bg-[#FF7A00]/10 text-[#FF7A00] rounded-xl">
+              <Users className="h-4 w-4" />
             </div>
-            <p className="text-[10px] text-slate-500">De propostas ganhas vs perdidas</p>
           </div>
+          <div className="space-y-0.5">
+            <h4 className="text-xl sm:text-2xl font-black font-display text-white">
+              {totalClients}
+            </h4>
+            <p className="text-[10px] text-[#34D399] font-bold">{leadsNovosCount} novos leads no topo</p>
+          </div>
+        </div>
 
-          <div className="w-px bg-slate-800 hidden lg:block" />
-
-          <div className="flex-1">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Conversas Totais</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-extrabold text-white">{totalRetrabalhosFeitos}</span>
-              <Activity className="h-4 w-4 text-indigo-400" />
+        {/* KPI 2: Comissões no Mês */}
+        <div 
+          onClick={() => onNavigate('comissoes')}
+          className="bg-[#161616] border border-[#303030] p-4 sm:p-5 rounded-2xl shadow-xs space-y-2 cursor-pointer hover:border-emerald-500/40 transition-all"
+        >
+          <div className="flex items-center justify-between text-[#888888]">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Comissões no Mês</span>
+            <div className="p-2 bg-emerald-500/10 text-[#34D399] rounded-xl">
+              <DollarSign className="h-4 w-4" />
             </div>
-            <p className="text-[10px] text-slate-500">Toques de relacionamento</p>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-xl sm:text-2xl font-black font-display text-[#34D399]">
+              {formatCurrency(monthlyCommissionSum)}
+            </h4>
+            <p className="text-[10px] text-[#888888]">{monthlySales.length} vendas registradas</p>
+          </div>
+        </div>
+
+        {/* KPI 3: VGV Total Negociado */}
+        <div 
+          onClick={() => onNavigate('comissoes')}
+          className="bg-[#161616] border border-[#303030] p-4 sm:p-5 rounded-2xl shadow-xs space-y-2 cursor-pointer hover:border-[#FF7A00]/40 transition-all"
+        >
+          <div className="flex items-center justify-between text-[#888888]">
+            <span className="text-[10px] font-bold uppercase tracking-wider">VGV Comercializado</span>
+            <div className="p-2 bg-[#FF7A00]/10 text-[#FF7A00] rounded-xl">
+              <Briefcase className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-xl sm:text-2xl font-black font-display text-white">
+              {totalVgvSum > 0 ? formatCurrency(totalVgvSum) : 'R$ 0,00'}
+            </h4>
+            <p className="text-[10px] text-[#888888]">Volume geral acumulado</p>
+          </div>
+        </div>
+
+        {/* KPI 4: Taxa de Conversão */}
+        <div 
+          onClick={() => onNavigate('funil')}
+          className="bg-[#161616] border border-[#303030] p-4 sm:p-5 rounded-2xl shadow-xs space-y-2 cursor-pointer hover:border-amber-500/40 transition-all"
+        >
+          <div className="flex items-center justify-between text-[#888888]">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Taxa de Conversão</span>
+            <div className="p-2 bg-amber-500/10 text-[#FBBF24] rounded-xl">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-xl sm:text-2xl font-black font-display text-white">
+              {conversionRate}%
+            </h4>
+            <p className="text-[10px] text-[#888888]">{totalFechadas} fechadas vs {totalPerdidos} perdidos</p>
           </div>
         </div>
       </div>
 
-      {/* Main Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Funnel chart */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 lg:col-span-7">
-          <div className="mb-4">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100">Funil de Vendas Imobiliário</h3>
-            <p className="text-xs text-slate-500">Distribuição de clientes por etapa de atendimento</p>
+      {/* 4. Charts Section (Funnel Distribution + Monthly Commissions Evolution) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Chart 1: Funnel Stages Bar */}
+        <div className="bg-[#161616] border border-[#303030] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-sm font-display text-white">
+                Distribuição do Funil de Vendas
+              </h3>
+              <p className="text-xs text-[#888888]">Volume de leads em cada etapa da jornada</p>
+            </div>
+            <button
+              onClick={() => onNavigate('funil')}
+              className="text-xs text-[#FF7A00] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <span>Ver Kanban</span>
+              <ChevronRight className="h-3 w-3" />
+            </button>
           </div>
-          <div className="h-64 w-full">
+
+          <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={funnelStages.filter(f => f.value > 0)}>
-                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} />
-                <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+              <BarChart data={funnelStages} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 9, fill: '#888888' }} 
+                  angle={-30} 
+                  textAnchor="end"
+                  interval={0}
+                />
+                <YAxis tick={{ fontSize: 10, fill: '#888888' }} allowDecimals={false} />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#1e293b', 
-                    borderRadius: '8px', 
+                    backgroundColor: '#161616', 
+                    borderRadius: '12px', 
+                    border: '1px solid #303030', 
                     color: '#fff',
-                    border: 'none',
-                    fontSize: '12px'
-                  }} 
+                    fontSize: '12px' 
+                  }}
+                  cursor={{ fill: 'rgba(255, 122, 0, 0.05)' }}
                 />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {funnelStages.filter(f => f.value > 0).map((entry, index) => (
+                <Bar dataKey="value" name="Leads" radius={[6, 6, 0, 0]}>
+                  {funnelStages.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
@@ -285,101 +380,190 @@ export default function Dashboard({ clients, sales, onSelectClient, onNavigate }
           </div>
         </div>
 
-        {/* Neglected Clients list */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 lg:col-span-5">
-          <div className="mb-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">Ranking dos Esquecidos</h3>
-              <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200">
-                Ação Requerida
-              </span>
+        {/* Chart 2: Monthly Commissions Evolution Area Chart */}
+        <div className="bg-[#161616] border border-[#303030] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-sm font-display text-white">
+                Evolução Mensal de Comissões (2026)
+              </h3>
+              <p className="text-xs text-[#888888]">Curva de honorários arrecadados no ano</p>
             </div>
-            <p className="text-xs text-slate-500">Clientes quentes sem contato há mais tempo</p>
+            <button
+              onClick={() => onNavigate('comissoes')}
+              className="text-xs text-[#FF7A00] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <span>Ver Extrato</span>
+              <ChevronRight className="h-3 w-3" />
+            </button>
           </div>
 
-          <div className="space-y-3">
-            {warmClientsEsquecidos.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-8">Nenhum cliente quente pendente.</p>
-            ) : (
-              warmClientsEsquecidos.map((item, idx) => {
-                const clientObj = clients.find(c => c.id === item.id);
-                const isUrgente = item.diasSemContato > 15;
-                const isRetrabalho = item.diasSemContato > 7;
-
-                return (
-                  <div 
-                    key={item.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-slate-50 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-all"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-400">#{idx + 1}</span>
-                        <h4 
-                          onClick={() => onSelectClient(item.id)}
-                          className="font-bold text-sm text-slate-800 dark:text-slate-100 hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer"
-                        >
-                          {item.name}
-                        </h4>
-                      </div>
-                      <p className="text-[10px] font-mono text-slate-500">
-                        Último toque: {clientObj?.lastContactDate ? new Date(clientObj.lastContactDate).toLocaleDateString() : 'Nenhum'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-extrabold px-2 py-1 rounded-md ${
-                        isUrgente 
-                          ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border border-red-200' 
-                          : isRetrabalho 
-                            ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border border-orange-200'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                      }`}>
-                        {item.diasSemContato} dias sem contato
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div className="h-64 w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={commissionChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="commGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF7A00" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#FF7A00" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#888888' }} />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: '#888888' }} 
+                  tickFormatter={(val) => `R$${val >= 1000 ? `${val / 1000}k` : val}`}
+                />
+                <Tooltip 
+                  formatter={(val: any) => [formatCurrency(Number(val)), 'Comissão']}
+                  contentStyle={{ 
+                    backgroundColor: '#161616', 
+                    borderRadius: '12px', 
+                    border: '1px solid #303030', 
+                    color: '#fff',
+                    fontSize: '12px' 
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="Comissao" 
+                  stroke="#FF7A00" 
+                  strokeWidth={2.5} 
+                  fillOpacity={1} 
+                  fill="url(#commGrad)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Commissions Area Chart */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5">
-        <div className="mb-4">
-          <h3 className="font-bold text-slate-800 dark:text-slate-100">Evolução de Comissões (2026)</h3>
-          <p className="text-xs text-slate-500">Histórico de rendimento acumulado por mês em Reais (R$)</p>
+      {/* 5. Bottom Row: Termômetro de Atenção (Leads Esquecidos) + Distribuição por Origem */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Termômetro dos Esquecidos (2 Cols) */}
+        <div className="lg:col-span-2 bg-[#161616] border border-[#303030] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-rose-500/10 text-[#FB7185] rounded-xl border border-rose-500/20">
+                <Flame className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm font-display text-white">
+                  Termômetro de Atenção (Leads sem Contato Recente)
+                </h3>
+                <p className="text-xs text-[#888888]">Clientes em negociação que necessitam de resgate</p>
+              </div>
+            </div>
+            <button
+              onClick={() => onNavigate('clientes')}
+              className="text-xs text-[#FF7A00] hover:underline font-bold cursor-pointer"
+            >
+              Ver Carteira
+            </button>
+          </div>
+
+          {warmClientsEsquecidos.length === 0 ? (
+            <div className="p-8 text-center text-[#888888]">
+              <p className="text-xs font-semibold">Todos os seus leads estão em dia com contatos recentes!</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {warmClientsEsquecidos.map(({ client, days }) => (
+                <div
+                  key={client.id}
+                  className="p-3 bg-[#1F1F1F] border border-[#303030] rounded-2xl flex items-center justify-between gap-3 hover:border-[#FF7A00]/30 transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`p-2 rounded-xl text-xs font-bold font-mono ${
+                      days >= 14 
+                        ? 'bg-rose-500/15 text-[#FB7185] border border-rose-500/20' 
+                        : 'bg-amber-500/15 text-[#FBBF24] border border-amber-500/20'
+                    }`}>
+                      {days === 99 ? 'Nunca' : `${days}d`}
+                    </div>
+                    <div className="min-w-0">
+                      <button
+                        onClick={() => onSelectClient(client.id)}
+                        className="text-xs font-bold text-white hover:text-[#FF7A00] truncate block text-left cursor-pointer"
+                      >
+                        {client.name}
+                      </button>
+                      <span className="text-[10px] text-[#888888] block truncate">
+                        Fase: <strong className="text-[#E5E5E5]">{client.status}</strong> {client.empreendimento ? `• ${client.empreendimento}` : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleRescueWhatsApp(client)}
+                      className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-[#34D399] hover:bg-emerald-500/20 text-xs font-bold flex items-center gap-1 border border-emerald-500/20 transition-all cursor-pointer"
+                      title="Chamar no WhatsApp"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">WhatsApp</span>
+                    </button>
+                    <button
+                      onClick={() => onSelectClient(client.id)}
+                      className="p-1.5 text-[#888888] hover:text-[#FF7A00] rounded-lg hover:bg-[#161616] transition-all cursor-pointer"
+                      title="Abrir Ficha"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={commissionChartData}>
-              <defs>
-                <linearGradient id="colorCom" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} />
-              <YAxis 
-                tick={{ fill: '#64748b', fontSize: 10 }} 
-                tickFormatter={(val) => `R$ ${val / 1000}k`}
-              />
-              <Tooltip 
-                formatter={(val: number) => [formatCurrency(val), 'Comissão']}
-                contentStyle={{ 
-                  backgroundColor: '#1e293b', 
-                  borderRadius: '8px', 
-                  color: '#fff',
-                  border: 'none',
-                  fontSize: '12px'
-                }} 
-              />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:hidden" />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" className="hidden dark:block" />
-              <Area type="monotone" dataKey="Comissao" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCom)" />
-            </AreaChart>
-          </ResponsiveContainer>
+
+        {/* Lead Origins Pie Distribution */}
+        <div className="bg-[#161616] border border-[#303030] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
+          <div>
+            <h3 className="font-bold text-sm font-display text-white flex items-center gap-2">
+              <PieIcon className="h-4 w-4 text-[#FF7A00]" />
+              <span>Origem dos Leads</span>
+            </h3>
+            <p className="text-xs text-[#888888]">Canais de captação de clientes</p>
+          </div>
+
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={originDistribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={70}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {originDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#161616', 
+                    borderRadius: '12px', 
+                    border: '1px solid #303030', 
+                    color: '#fff', 
+                    fontSize: '12px' 
+                  }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-[#303030]">
+            {originDistribution.map(item => (
+              <div key={item.name} className="flex items-center gap-1.5 text-[10px] text-[#888888]">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                <span>{item.name} ({item.value})</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -12,15 +12,16 @@ import {
   Check, 
   Plus, 
   History, 
-  RotateCw, 
   AlertTriangle,
-  ChevronDown,
   FileText,
   Save,
   MessageCircle,
-  TrendingUp,
   FolderOpen,
-  Trash2
+  Trash2,
+  CheckCircle2,
+  ExternalLink,
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import DocumentsTab from '../modules/documents/components/DocumentsTab';
@@ -86,6 +87,20 @@ export default function ClientDetails({
     }
   }, [client.id, tasksProp]);
 
+  // Sync with prop changes
+  useEffect(() => {
+    setName(client.name);
+    setPhone(client.phone);
+    setNotes(client.notes);
+    setStatus(client.status);
+    setNextContactDate(client.nextContactDate || '');
+    setContactCount(client.contactCount);
+    setSelectedTags(client.tags);
+    setEmail(client.email || '');
+    setEmpreendimento(client.empreendimento || '');
+    setOrigem(client.origem || '');
+  }, [client]);
+
   // Form submit handler for new tasks
   const handleFormAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +120,6 @@ export default function ClientDetails({
     if (onAddTask) {
       onAddTask(taskData);
     } else {
-      // Fallback direct storage update
       const allTasks = getStoredTasks();
       const newTask: Task = {
         id: 'task_' + Math.random().toString(36).substr(2, 9),
@@ -117,7 +131,6 @@ export default function ClientDetails({
       setClientTasks(updated.filter(t => t.clientId === client.id));
     }
 
-    // Reset task form
     setIsAddingTask(false);
     setTaskNotes('');
   };
@@ -134,7 +147,6 @@ export default function ClientDetails({
     }
     setSelectedTags(updated);
     
-    // Auto-save tag change
     const updatedClient: Client = {
       ...client,
       tags: updated,
@@ -162,7 +174,7 @@ export default function ClientDetails({
         {
           id: Math.random().toString(),
           date: new Date().toISOString(),
-          action: `Contato registrado (Total de interações: ${newVal})`
+          action: `Contato registrado (Total de toques: ${newVal})`
         },
         ...client.history
       ]
@@ -171,7 +183,7 @@ export default function ClientDetails({
   };
 
   const handleDecrementContact = () => {
-    if (contactCount === 0) return;
+    if (contactCount <= 0) return;
     const newVal = contactCount - 1;
     setContactCount(newVal);
     
@@ -182,7 +194,26 @@ export default function ClientDetails({
         {
           id: Math.random().toString(),
           date: new Date().toISOString(),
-          action: `Contador de contatos reduzido manualmente para ${newVal}`
+          action: `Ajuste manual de toques: ${newVal}`
+        },
+        ...client.history
+      ]
+    };
+    onUpdateClient(updatedClient);
+  };
+
+  const handleQuickStatusChange = (newStatus: ClientStatus) => {
+    if (newStatus === status) return;
+    setStatus(newStatus);
+
+    const updatedClient: Client = {
+      ...client,
+      status: newStatus,
+      history: [
+        {
+          id: Math.random().toString(),
+          date: new Date().toISOString(),
+          action: `Etapa alterada de "${status}" para "${newStatus}"`
         },
         ...client.history
       ]
@@ -191,29 +222,14 @@ export default function ClientDetails({
   };
 
   const handleSaveGeneral = () => {
-    if (!name.trim()) return;
-
-    const historyItems = [];
-    if (name !== client.name) historyItems.push(`Alterou o nome de "${client.name}" para "${name}"`);
-    if (phone !== client.phone) historyItems.push(`Alterou o telefone para "${phone}"`);
-    if (notes !== client.notes) historyItems.push(`Atualizou as observações iniciais`);
-    if (status !== client.status) historyItems.push(`Moveu a etapa de "${client.status}" para "${status}"`);
-    if (nextContactDate !== (client.nextContactDate || '')) {
-      historyItems.push(
-        nextContactDate 
-          ? `Agendou próximo retorno para ${new Date(nextContactDate).toLocaleString('pt-BR')}`
-          : 'Removeu data de próximo retorno'
-      );
+    const newHistory = [];
+    if (status !== client.status) {
+      newHistory.push({
+        id: Math.random().toString(),
+        date: new Date().toISOString(),
+        action: `Etapa alterada de "${client.status}" para "${status}"`
+      });
     }
-    if (email !== (client.email || '')) historyItems.push(`Alterou o email para "${email}"`);
-    if (empreendimento !== (client.empreendimento || '')) historyItems.push(`Alterou o empreendimento de interesse para "${empreendimento}"`);
-    if (origem !== (client.origem || '')) historyItems.push(`Alterou a origem do lead para "${origem}"`);
-
-    const newHistory = historyItems.map(item => ({
-      id: Math.random().toString(),
-      date: new Date().toISOString(),
-      action: item
-    }));
 
     const updatedClient: Client = {
       ...client,
@@ -245,12 +261,12 @@ export default function ClientDetails({
     const updatedClient: Client = {
       ...client,
       comments: [newCommentObj, ...client.comments],
-      lastContactDate: new Date().toISOString(), // Auto updates last contact on comment log
+      lastContactDate: new Date().toISOString(),
       history: [
         {
           id: Math.random().toString(),
           date: new Date().toISOString(),
-          action: `Novo comentário registrado no histórico de observações`
+          action: `Nova anotação registrada no histórico`
         },
         ...client.history
       ]
@@ -273,50 +289,116 @@ export default function ClientDetails({
     'Perdido'
   ];
 
+  const getInitials = (n: string) => {
+    const parts = n.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   return (
     <div 
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex justify-end transition-all"
+      className="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 flex items-end md:items-stretch md:justify-end transition-all"
       onClick={onClose}
       id="client-profile-modal-backdrop"
     >
       <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 h-full flex flex-col shadow-2xl relative border-l border-slate-100 dark:border-slate-800"
+        initial={{ y: '100%', md: { y: 0, x: '100%' } }}
+        animate={{ y: 0, x: 0 }}
+        exit={{ y: '100%', md: { y: 0, x: '100%' } }}
+        transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+        className="w-full md:max-w-2xl lg:max-w-3xl bg-white dark:bg-[#0B0B0B] h-[92vh] md:h-full flex flex-col shadow-2xl relative rounded-t-3xl md:rounded-t-none md:border-l border-slate-200 dark:border-[#2A2A2A] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         id="client-profile-modal-body"
       >
-        {/* Header */}
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl">
-              <User className="h-5 w-5" />
+        {/* Mobile Drag Indicator */}
+        <div className="md:hidden pt-3 pb-1 flex justify-center bg-slate-50 dark:bg-[#161616]">
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-[#333333] rounded-full" />
+        </div>
+
+        {/* Header Banner */}
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-[#2A2A2A] bg-slate-50 dark:bg-[#161616] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FF9800] via-[#FD7A00] to-[#E85D00] text-[#0B0B0B] font-black text-sm flex items-center justify-center shrink-0 shadow-sm shadow-[#FD7A00]/20 font-display">
+              {getInitials(client.name)}
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Ficha de Atendimento</h2>
-              <p className="text-xs text-slate-500">Perfil, lembretes e linha do tempo do cliente</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold font-display text-slate-900 dark:text-white tracking-tight truncate">
+                  {client.name}
+                </h2>
+                <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-[#888888] shrink-0">
+                  #{client.id.substring(0, 6)}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-[#888888] flex items-center gap-2 font-mono">
+                <span>{client.phone}</span>
+                {client.empreendimento && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-400 dark:bg-[#555555]" />
+                    <span className="font-sans text-slate-700 dark:text-[#E5E5E5] truncate">{client.empreendimento}</span>
+                  </>
+                )}
+              </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all cursor-pointer"
-            id="close-profile-btn"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Quick WhatsApp button */}
+            <a
+              href={`https://wa.me/${client.phone.replace(/\D/g, '')}`}
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all shadow-2xs"
+              title="WhatsApp"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </a>
+
+            {/* Quick Call button */}
+            <a
+              href={`tel:${client.phone.replace(/\D/g, '')}`}
+              className="p-2 bg-slate-200 dark:bg-[#222222] hover:bg-slate-300 dark:hover:bg-[#333333] text-slate-700 dark:text-[#E5E5E5] rounded-xl transition-all"
+              title="Ligar"
+            >
+              <Phone className="h-4 w-4" />
+            </a>
+
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-200 dark:hover:bg-[#222222] rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"
+              id="close-profile-btn"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Funnel Stage Switcher Row */}
+        <div className="px-4 py-2 bg-white dark:bg-[#0B0B0B] border-b border-slate-200 dark:border-[#2A2A2A] flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase tracking-wider shrink-0">Etapa:</span>
+          {STATUS_LIST.map((st) => (
+            <button
+              key={st}
+              onClick={() => handleQuickStatusChange(st)}
+              className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+                status === st
+                  ? 'bg-gradient-to-r from-[#FF9800] via-[#FD7A00] to-[#E85D00] text-[#0B0B0B] font-black shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#161616] text-slate-600 dark:text-[#888888] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#2A2A2A]'
+              }`}
+            >
+              {st}
+            </button>
+          ))}
         </div>
 
         {/* Sub-Tabs Bar */}
-        <div className="px-5 border-b border-slate-150 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950 flex gap-1 overflow-x-auto scrollbar-none">
+        <div className="px-4 border-b border-slate-200 dark:border-[#2A2A2A] bg-slate-50 dark:bg-[#161616] flex gap-1 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveSubTab('informacoes')}
-            className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'informacoes'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FD7A00] text-[#FD7A00]'
+                : 'border-transparent text-slate-500 dark:text-[#888888] hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <User className="h-3.5 w-3.5" />
@@ -324,10 +406,10 @@ export default function ClientDetails({
           </button>
           <button
             onClick={() => setActiveSubTab('historico')}
-            className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'historico'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FD7A00] text-[#FD7A00]'
+                : 'border-transparent text-slate-500 dark:text-[#888888] hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <History className="h-3.5 w-3.5" />
@@ -335,57 +417,57 @@ export default function ClientDetails({
           </button>
           <button
             onClick={() => setActiveSubTab('atendimentos')}
-            className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'atendimentos'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FD7A00] text-[#FD7A00]'
+                : 'border-transparent text-slate-500 dark:text-[#888888] hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            <span>Atendimentos</span>
+            <span>Atendimentos ({client.comments.length})</span>
           </button>
           <button
             onClick={() => setActiveSubTab('agenda')}
-            className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'agenda'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FD7A00] text-[#FD7A00]'
+                : 'border-transparent text-slate-500 dark:text-[#888888] hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <Calendar className="h-3.5 w-3.5" />
-            <span>Agenda</span>
+            <span>Agenda ({clientTasks.length})</span>
           </button>
           <button
             onClick={() => setActiveSubTab('documentos')}
-            className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'documentos'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                ? 'border-[#FD7A00] text-[#FD7A00]'
+                : 'border-transparent text-slate-500 dark:text-[#888888] hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            <FolderOpen className="h-3.5 w-3.5 text-teal-500" />
-            <span>📂 Documentos</span>
+            <FolderOpen className="h-3.5 w-3.5 text-[#FD7A00]" />
+            <span>Documentos</span>
           </button>
         </div>
 
         {/* Content Body Scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {/* Intelligence Alerts Banner */}
           {(alerts.isAtrasado || alerts.isUrgente || alerts.isSemRetorno) && (
-            <div className="bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 rounded-xl p-4 space-y-1">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+            <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 rounded-2xl p-3.5 space-y-1">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                 <AlertTriangle className="h-4 w-4" />
-                Dica de Inteligência Merlin
+                Alerta Comercial Inteligente
               </span>
-              <ul className="text-xs text-slate-700 dark:text-slate-300 list-disc list-inside space-y-1 pt-1">
+              <ul className="text-xs text-slate-700 dark:text-slate-300 list-disc list-inside space-y-1 pt-0.5">
                 {alerts.isAtrasado && (
-                  <li>O retorno deste cliente está <strong>atrasado</strong>. Entre em contato urgente.</li>
+                  <li>O retorno deste cliente está <strong>atrasado</strong>. Entre em contato prioritário.</li>
                 )}
                 {alerts.isUrgente && (
-                  <li><strong>Alerta Urgente</strong>: Sem contato há {days} dias (&gt; 15 dias parado). Recomenda-se resgatar ou descartar.</li>
+                  <li>Sem contato há <strong>{days} dias</strong> (&gt; 15 dias parado). Recomenda-se resgatar com uma oferta especial.</li>
                 )}
                 {alerts.isSemRetorno && (
-                  <li>Este cliente não possui um <strong>próximo contato agendado</strong>. Defina uma data de retorno para não esquecê-lo!</li>
+                  <li>Este cliente não possui um <strong>próximo contato agendado</strong>. Defina uma data de retorno.</li>
                 )}
               </ul>
             </div>
@@ -393,11 +475,11 @@ export default function ClientDetails({
 
           {/* TAB 1: INFORMAÇÕES */}
           {activeSubTab === 'informacoes' && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* SECTION 1: GENERAL INFO (EDITABLE OR STATIC) */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="bg-slate-50 dark:bg-[#161616] p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-[#2A2A2A] space-y-4 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Dados do Cliente</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#888888]">Dados do Cliente</h3>
                   <button
                     onClick={() => {
                       if (isEditingGeneral) {
@@ -406,7 +488,7 @@ export default function ClientDetails({
                         setIsEditingGeneral(true);
                       }
                     }}
-                    className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1.5 cursor-pointer"
+                    className="text-xs font-bold text-[#FD7A00] hover:underline flex items-center gap-1.5 cursor-pointer"
                   >
                     {isEditingGeneral ? (
                       <>
@@ -421,60 +503,60 @@ export default function ClientDetails({
 
                 {isEditingGeneral ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Nome Completo</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Nome Completo</label>
                         <input
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                           required
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Telefone / WhatsApp</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Telefone / WhatsApp</label>
                         <input
                           type="text"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="Ex: (11) 98765-4321"
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                           required
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Email</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Email</label>
                         <input
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Ex: roberto@gmail.com"
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          placeholder="Ex: cliente@email.com"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Empreendimento de Interesse</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Empreendimento de Interesse</label>
                         <input
                           type="text"
                           value={empreendimento}
                           onChange={(e) => setEmpreendimento(e.target.value)}
                           placeholder="Ex: Residencial Bela Vista"
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Etapa do Funil</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Etapa do Funil</label>
                         <select
                           value={status}
                           onChange={(e) => setStatus(e.target.value as ClientStatus)}
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                         >
                           {STATUS_LIST.map(st => (
                             <option key={st} value={st}>{st}</option>
@@ -482,132 +564,90 @@ export default function ClientDetails({
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Origem do Lead</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Origem do Lead</label>
                         <input
                           type="text"
                           value={origem}
                           onChange={(e) => setOrigem(e.target.value)}
-                          placeholder="Ex: Instagram, Placa"
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          placeholder="Ex: Instagram, Placa, Indicação"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase">Próximo Retorno (Agendamento)</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Próximo Retorno</label>
                         <input
                           type="datetime-local"
                           value={nextContactDate}
                           onChange={(e) => setNextContactDate(e.target.value)}
-                          className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                          className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Observações Iniciais</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Perfil &amp; Observações Iniciais</label>
                       <textarea
                         rows={3}
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Descrição do perfil imobiliário..."
-                        className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                        placeholder="Orçamento, tipo de imóvel, requisitos..."
+                        className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                       />
                     </div>
                   </div>
                 ) : (
                   // STATIC DISPLAY
                   <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row justify-between gap-4">
-                      <div className="space-y-1">
-                        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{client.name}</h1>
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm font-mono text-slate-500 font-semibold">{client.phone}</p>
-                          
-                          <div className="flex gap-1.5">
-                            <a
-                              href={`https://wa.me/${client.phone.replace(/\D/g, '')}`}
-                              target="_blank"
-                              referrerPolicy="no-referrer"
-                              className="p-1.5 bg-green-500 text-white hover:bg-green-600 rounded-lg transition-colors flex items-center justify-center shadow-xs"
-                              title="WhatsApp"
-                            >
-                              <MessageSquare className="h-3.5 w-3.5" />
-                            </a>
-                            <a
-                              href={`tel:${client.phone.replace(/\D/g, '')}`}
-                              className="p-1.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 rounded-lg transition-colors flex items-center justify-center"
-                              title="Ligar"
-                            >
-                              <Phone className="h-3.5 w-3.5" />
-                            </a>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-white dark:bg-[#222222] p-3 rounded-xl border border-slate-200 dark:border-[#2A2A2A]">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#888888] block">Status Atual</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 inline-block">{client.status}</span>
                       </div>
-
-                      <div className="flex flex-col md:items-end justify-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400">Etapa do Funil</span>
-                        <span className="text-sm font-bold bg-teal-500 text-white px-3 py-1 rounded-full mt-1 inline-block">
-                          {client.status}
+                      <div className="bg-white dark:bg-[#222222] p-3 rounded-xl border border-slate-200 dark:border-[#2A2A2A]">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#888888] block">Sem Contato</span>
+                        <span className="text-xs font-bold text-[#FD7A00] mt-0.5 inline-block">{days} dias</span>
+                      </div>
+                      <div className="bg-white dark:bg-[#222222] p-3 rounded-xl border border-slate-200 dark:border-[#2A2A2A]">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#888888] block">Toques Feitos</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 inline-block">{contactCount} contatos</span>
+                      </div>
+                      <div className="bg-white dark:bg-[#222222] p-3 rounded-xl border border-slate-200 dark:border-[#2A2A2A]">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#888888] block">Próximo Retorno</span>
+                        <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 inline-block truncate">
+                          {client.nextContactDate 
+                            ? new Date(client.nextContactDate).toLocaleDateString('pt-BR') 
+                            : 'Não agendado'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-150 dark:border-slate-800/80 pt-4">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Próximo Retorno</span>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Calendar className="h-4 w-4 text-slate-400" />
-                          <span className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-                            {client.nextContactDate 
-                              ? new Date(client.nextContactDate).toLocaleString('pt-BR') 
-                              : 'Sem retorno agendado'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Período Sem Conversa</span>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Clock className="h-4 w-4 text-slate-400" />
-                          <span className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-                            {days} dia{days > 1 ? 's' : ''} sem toque de relacionamento
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
                     {(client.email || client.empreendimento || client.origem) && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-150 dark:border-slate-800/80 pt-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-slate-200 dark:border-[#2A2A2A] pt-3">
                         {client.email && (
                           <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Email</span>
-                            <p className="text-xs text-slate-800 dark:text-slate-200 font-medium mt-1 truncate" title={client.email}>
-                              {client.email}
-                            </p>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Email</span>
+                            <p className="text-xs text-slate-800 dark:text-[#E5E5E5] font-medium mt-0.5 truncate">{client.email}</p>
                           </div>
                         )}
                         {client.empreendimento && (
                           <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Empreendimento</span>
-                            <p className="text-xs text-slate-800 dark:text-slate-200 font-medium mt-1">
-                              {client.empreendimento}
-                            </p>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Empreendimento</span>
+                            <p className="text-xs text-slate-800 dark:text-[#E5E5E5] font-medium mt-0.5">{client.empreendimento}</p>
                           </div>
                         )}
                         {client.origem && (
                           <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Origem</span>
-                            <p className="text-xs text-slate-800 dark:text-slate-200 font-medium mt-1">
-                              {client.origem}
-                            </p>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Origem</span>
+                            <p className="text-xs text-slate-800 dark:text-[#E5E5E5] font-medium mt-0.5">{client.origem}</p>
                           </div>
                         )}
                       </div>
                     )}
 
                     {client.notes && (
-                      <div className="border-t border-slate-150 dark:border-slate-800/80 pt-4">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Perfil Imobiliário</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 italic">
+                      <div className="border-t border-slate-200 dark:border-[#2A2A2A] pt-3">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase block">Perfil Imobiliário</span>
+                        <p className="text-xs text-slate-700 dark:text-[#E5E5E5] mt-1 bg-white dark:bg-[#222222] p-3 rounded-xl border border-slate-200 dark:border-[#2A2A2A] italic">
                           &ldquo;{client.notes}&rdquo;
                         </p>
                       </div>
@@ -617,13 +657,13 @@ export default function ClientDetails({
               </div>
 
               {/* SECTION 2: WHATSAPP-STYLE TAGS */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Etiquetas Associadas</h3>
-                  <p className="text-[10px] text-slate-400">Clique nas etiquetas abaixo para ativá-las ou desativá-las</p>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#888888]">Etiquetas WhatsApp</h3>
+                  <p className="text-[10px] text-slate-400 dark:text-[#888888]">Clique para ativar ou desativar etiquetas deste lead</p>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 p-3.5 bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/60 rounded-xl">
+                <div className="flex flex-wrap gap-1.5 p-3.5 bg-slate-50 dark:bg-[#161616] border border-slate-200 dark:border-[#2A2A2A] rounded-2xl">
                   {tags.map(tag => {
                     const isActive = selectedTags.includes(tag.name);
                     return (
@@ -631,10 +671,10 @@ export default function ClientDetails({
                         type="button"
                         key={tag.id}
                         onClick={() => handleToggleTag(tag.name)}
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 cursor-pointer ${
+                        className={`text-[10px] font-semibold px-3 py-1 rounded-full border transition-all flex items-center gap-1 cursor-pointer ${
                           isActive 
-                            ? `${tag.color} ring-2 ring-teal-500/20` 
-                            : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+                            ? `${tag.color} ring-2 ring-[#FD7A00]/20 font-bold shadow-2xs` 
+                            : 'bg-white dark:bg-[#222222] text-slate-400 dark:text-[#888888] border-slate-200 dark:border-[#2A2A2A] hover:bg-slate-100 dark:hover:bg-[#2A2A2A]'
                         }`}
                       >
                         <span>{tag.name}</span>
@@ -646,27 +686,29 @@ export default function ClientDetails({
               </div>
 
               {/* SECTION 3: RE-TRABALHO (FOLLOW-UP COUNTER) */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Controle de Retrabalho (Seguimento)</span>
-                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Quantas vezes você conversou com este cliente?</h4>
-                  <p className="text-xs text-slate-500">Última conversa registrada: {client.lastContactDate ? new Date(client.lastContactDate).toLocaleDateString('pt-BR') : 'Nenhuma'}</p>
+              <div className="bg-slate-50 dark:bg-[#161616] p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-[#2A2A2A] flex items-center justify-between shadow-xs">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase block">Controle de Retrabalho</span>
+                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">Toques de Relacionamento</h4>
+                  <p className="text-xs text-slate-500 dark:text-[#888888]">
+                    Último contato: {client.lastContactDate ? new Date(client.lastContactDate).toLocaleDateString('pt-BR') : 'Nenhum'}
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <button
                     onClick={handleDecrementContact}
                     disabled={contactCount === 0}
-                    className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-8 h-8 rounded-xl border border-slate-200 dark:border-[#2A2A2A] bg-white dark:bg-[#222222] flex items-center justify-center font-bold text-slate-600 dark:text-[#E5E5E5] hover:bg-slate-100 dark:hover:bg-[#2A2A2A] cursor-pointer disabled:opacity-40"
                   >
                     -
                   </button>
-                  <span className="font-mono text-2xl font-black text-slate-800 dark:text-slate-100 w-12 text-center">
+                  <span className="font-mono text-xl font-black text-slate-900 dark:text-white w-10 text-center">
                     {contactCount}
                   </span>
                   <button
                     onClick={handleIncrementContact}
-                    className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold hover:bg-teal-600 cursor-pointer shadow-xs"
+                    className="w-8 h-8 rounded-xl bg-gradient-to-r from-[#FF9800] via-[#FD7A00] to-[#E85D00] text-[#0B0B0B] flex items-center justify-center font-bold shadow-xs cursor-pointer active:scale-95"
                   >
                     +
                   </button>
@@ -679,20 +721,20 @@ export default function ClientDetails({
           {activeSubTab === 'historico' && (
             <div className="space-y-4">
               <div className="flex items-center gap-1.5">
-                <History className="h-4 w-4 text-slate-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Linha do Tempo de Alterações</h3>
+                <History className="h-4 w-4 text-[#FD7A00]" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#888888]">Linha do Tempo de Alterações</h3>
               </div>
 
-              <div className="relative border-l border-slate-200 dark:border-slate-800 pl-4 ml-2.5 space-y-4">
+              <div className="relative border-l border-slate-200 dark:border-[#2A2A2A] pl-4 ml-2.5 space-y-4">
                 {client.history.map(hist => (
                   <div key={hist.id} className="relative">
                     {/* Timeline dot */}
-                    <span className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 border-2 border-white dark:border-slate-900" />
+                    <span className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#FD7A00] border-2 border-white dark:border-[#0B0B0B]" />
                     
-                    <div className="text-[10px] text-slate-400">
+                    <div className="text-[10px] text-slate-400 dark:text-[#888888] font-mono">
                       {new Date(hist.date).toLocaleString('pt-BR')}
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-0.5">
+                    <p className="text-xs text-slate-700 dark:text-[#E5E5E5] font-medium mt-0.5">
                       {hist.action}
                     </p>
                   </div>
@@ -705,49 +747,49 @@ export default function ClientDetails({
           {activeSubTab === 'atendimentos' && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Histórico de Conversas</h3>
-                <p className="text-[10px] text-slate-400">Cadastre notas sobre telefonemas, visitas ou reuniões com este cliente</p>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#888888]">Histórico de Conversas</h3>
+                <p className="text-[10px] text-slate-400 dark:text-[#888888]">Cadastre notas sobre telefonemas, visitas ou reuniões com este cliente</p>
               </div>
 
               {/* Comment Form */}
               <form onSubmit={handleAddComment} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Ex: Liguei hoje e ele quer visitar o imóvel no próximo sábado..."
+                  placeholder="Ex: Liguei hoje e agendamos visita para sábado às 10h..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 text-xs bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="flex-1 text-xs bg-slate-50 dark:bg-[#161616] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#FD7A00] focus:border-[#FD7A00]"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-teal-500 hover:bg-teal-600 text-white px-4 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="bg-gradient-to-r from-[#FF9800] via-[#FD7A00] to-[#E85D00] hover:brightness-105 text-[#0B0B0B] px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Salvar Nota</span>
+                  <span>Salvar</span>
                 </button>
               </form>
 
               {/* Comments List */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {client.comments.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4 bg-slate-50/50 dark:bg-slate-950/10 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <p className="text-xs text-slate-400 dark:text-[#888888] text-center py-6 bg-slate-50 dark:bg-[#161616] rounded-2xl border border-dashed border-slate-200 dark:border-[#2A2A2A]">
                     Nenhuma anotação de conversa cadastrada ainda.
                   </p>
                 ) : (
                   client.comments.map(comm => (
                     <div 
                       key={comm.id}
-                      className="p-3.5 bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-850 rounded-xl space-y-1.5 shadow-2xs"
+                      className="p-3.5 bg-slate-50 dark:bg-[#161616] border border-slate-200 dark:border-[#2A2A2A] rounded-2xl space-y-1 shadow-2xs"
                     >
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span className="font-semibold text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-[#888888]">
+                        <span className="font-semibold text-[#FD7A00] flex items-center gap-1">
                           <MessageCircle className="h-3 w-3" />
-                          Contato Registrado
+                          Atendimento Registrado
                         </span>
-                        <span>{new Date(comm.date).toLocaleString('pt-BR')}</span>
+                        <span className="font-mono">{new Date(comm.date).toLocaleString('pt-BR')}</span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                      <p className="text-xs text-slate-700 dark:text-[#E5E5E5] leading-relaxed font-medium">
                         {comm.text}
                       </p>
                     </div>
@@ -759,37 +801,37 @@ export default function ClientDetails({
 
           {/* TAB 4: AGENDA */}
           {activeSubTab === 'agenda' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <Calendar className="h-4.5 w-4.5 text-teal-500" />
-                    Agenda & Compromissos
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#888888] flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-[#FD7A00]" />
+                    Agenda &amp; Compromissos
                   </h3>
-                  <p className="text-xs text-slate-500">Próximas ações e compromissos agendados para este cliente</p>
+                  <p className="text-[10px] text-slate-400 dark:text-[#888888]">Tarefas agendadas para este cliente</p>
                 </div>
                 
                 <button
                   onClick={() => setIsAddingTask(!isAddingTask)}
-                  className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-[#FD7A00] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span>{isAddingTask ? 'Fechar Formulário' : 'Novo Compromisso'}</span>
+                  <span>{isAddingTask ? 'Fechar' : 'Novo Compromisso'}</span>
                 </button>
               </div>
 
               {/* Add task form */}
               {isAddingTask && (
-                <form onSubmit={handleFormAddTask} className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Novo Agendamento</h4>
+                <form onSubmit={handleFormAddTask} className="bg-slate-50 dark:bg-[#161616] p-4 rounded-2xl border border-slate-200 dark:border-[#2A2A2A] space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-[#888888]">Novo Agendamento</h4>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Ação / Tipo</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Ação</label>
                       <select
                         value={taskActionType}
                         onChange={(e) => setTaskActionType(e.target.value)}
-                        className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                        className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                       >
                         <option value="WhatsApp">WhatsApp</option>
                         <option value="Ligação">Ligação</option>
@@ -799,11 +841,11 @@ export default function ClientDetails({
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Prioridade</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Prioridade</label>
                       <select
                         value={taskPriority}
                         onChange={(e) => setTaskPriority(e.target.value as 'Alta' | 'Média' | 'Baixa')}
-                        className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                        className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                       >
                         <option value="Alta">Alta 🔥</option>
                         <option value="Média">Média ⚡</option>
@@ -812,42 +854,42 @@ export default function ClientDetails({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Data</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Data</label>
                       <input
                         type="date"
                         value={taskDueDate}
                         onChange={(e) => setTaskDueDate(e.target.value)}
-                        className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                        className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white font-mono focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                         required
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Hora</label>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Hora</label>
                       <input
                         type="time"
                         value={taskDueTime}
                         onChange={(e) => setTaskDueTime(e.target.value)}
-                        className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-100"
+                        className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2 text-slate-800 dark:text-white font-mono focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Observações</label>
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-[#888888] uppercase">Observações</label>
                     <input
                       type="text"
-                      placeholder="Ex: Apresentar proposta do Residencial Bela Vista"
+                      placeholder="Ex: Apresentar simulação de financiamento"
                       value={taskNotes}
                       onChange={(e) => setTaskNotes(e.target.value)}
-                      className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-slate-800 dark:text-slate-100"
+                      className="w-full text-xs bg-white dark:bg-[#222222] border border-slate-200 dark:border-[#2A2A2A] rounded-xl p-2.5 text-slate-800 dark:text-white focus:border-[#FD7A00] focus:ring-1 focus:ring-[#FD7A00]"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg shadow-md flex items-center justify-center gap-1 transition-all cursor-pointer"
+                    className="w-full bg-gradient-to-r from-[#FF9800] via-[#FD7A00] to-[#E85D00] text-[#0B0B0B] font-bold text-xs py-2 px-3 rounded-xl shadow-md flex items-center justify-center gap-1 cursor-pointer active:scale-95 hover:brightness-105"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span>Agendar Compromisso</span>
@@ -856,66 +898,56 @@ export default function ClientDetails({
               )}
 
               {/* Task List */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {clientTasks.length === 0 ? (
-                  <div className="text-center py-8 bg-slate-50/50 dark:bg-slate-950/10 border border-dashed border-slate-200 dark:border-slate-850 rounded-2xl flex flex-col items-center justify-center space-y-2">
-                    <Calendar className="h-8 w-8 text-slate-400" />
-                    <p className="text-xs text-slate-500">Nenhum compromisso agendado para este cliente.</p>
-                    {!isAddingTask && (
-                      <button
-                        onClick={() => setIsAddingTask(true)}
-                        className="mt-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-teal-600 dark:text-teal-400 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
-                      >
-                        Criar Primeiro Agendamento
-                      </button>
-                    )}
+                  <div className="text-center py-6 bg-slate-50 dark:bg-[#161616] border border-dashed border-slate-200 dark:border-[#2A2A2A] rounded-2xl flex flex-col items-center justify-center space-y-2">
+                    <Calendar className="h-7 w-7 text-slate-400 dark:text-[#888888]" />
+                    <p className="text-xs text-slate-500 dark:text-[#888888]">Nenhum compromisso agendado.</p>
                   </div>
                 ) : (
                   clientTasks.map(t => (
                     <div 
                       key={t.id}
-                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 shadow-2xs transition-all ${
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 shadow-2xs transition-all ${
                         t.completed 
-                          ? 'bg-slate-50/70 dark:bg-slate-950/25 border-slate-100 dark:border-slate-850 opacity-60' 
-                          : 'bg-white dark:bg-slate-950/40 border-slate-200 dark:border-slate-800'
+                          ? 'bg-slate-50 dark:bg-[#161616]/50 border-slate-200 dark:border-[#2A2A2A] opacity-60' 
+                          : 'bg-white dark:bg-[#161616] border-slate-200 dark:border-[#2A2A2A]'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {/* Checkbox */}
                         <button
                           onClick={() => onToggleTaskComplete?.(t.id)}
                           className={`w-5 h-5 rounded-md border flex items-center justify-center cursor-pointer transition-all ${
                             t.completed 
-                              ? 'bg-teal-500 border-teal-500 text-slate-950' 
-                              : 'border-slate-300 dark:border-slate-700 hover:border-teal-500'
+                              ? 'bg-emerald-500 border-emerald-500 text-white' 
+                              : 'border-slate-300 dark:border-[#444444] hover:border-[#FD7A00]'
                           }`}
                         >
-                          {t.completed && <Check className="h-3.5 w-3.5 font-bold text-slate-950" />}
+                          {t.completed && <Check className="h-3.5 w-3.5 font-bold" />}
                         </button>
 
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-bold ${t.completed ? 'line-through text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
+                            <span className={`text-xs font-bold ${t.completed ? 'line-through text-slate-400 dark:text-[#888888]' : 'text-slate-800 dark:text-white'}`}>
                               {t.actionType}
                             </span>
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
+                            <span className={`text-[8px] px-1.5 py-0.2 rounded-md font-bold uppercase ${
                               t.priority === 'Alta' 
-                                ? 'bg-rose-500/15 text-rose-500' 
+                                ? 'bg-rose-500/15 text-[#FB7185]' 
                                 : t.priority === 'Média' 
-                                ? 'bg-amber-500/15 text-amber-500' 
-                                : 'bg-slate-500/15 text-slate-500'
+                                ? 'bg-amber-500/15 text-[#FD7A00]' 
+                                : 'bg-slate-500/15 text-slate-400 dark:text-[#888888]'
                             }`}>
                               {t.priority}
                             </span>
                           </div>
                           {t.notes && (
-                            <p className={`text-[11px] mt-0.5 ${t.completed ? 'line-through text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                            <p className={`text-[11px] mt-0.5 ${t.completed ? 'line-through text-slate-400 dark:text-[#888888]' : 'text-slate-500 dark:text-[#888888]'}`}>
                               {t.notes}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 mt-1.5 text-[9px] text-slate-400">
-                            <span className="font-semibold flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-slate-400" />
+                          <div className="flex items-center gap-3 mt-1 text-[9px] text-slate-400 dark:text-[#888888] font-mono">
+                            <span>
                               {new Date(t.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')} {t.dueTime ? `@ ${t.dueTime}` : ''}
                             </span>
                           </div>
@@ -924,8 +956,8 @@ export default function ClientDetails({
 
                       <button
                         onClick={() => onDeleteTask?.(t.id)}
-                        className="p-1 text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
-                        title="Excluir agendamento"
+                        className="p-1 text-slate-400 hover:text-[#FB7185] rounded-lg transition-colors cursor-pointer"
+                        title="Excluir"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
