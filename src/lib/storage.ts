@@ -71,12 +71,12 @@ export function saveStoredSales(sales: Sale[]) {
 }
 
 export function getStoredTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
+  if (typeof window === 'undefined') return 'dark';
   const stored = localStorage.getItem(KEYS.THEME);
   if (stored === 'dark' || stored === 'light') {
     return stored;
   }
-  return 'light';
+  return 'dark';
 }
 
 export function saveStoredTheme(theme: 'light' | 'dark') {
