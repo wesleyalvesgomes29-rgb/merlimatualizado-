@@ -39,7 +39,7 @@ async function generateWithFallbackAndTimeout(
   systemPrompt: string,
   temperature: number
 ): Promise<string> {
-  const models = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+  const models = ["gemini-3.7-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
   let lastError: any = null;
 
   for (const model of models) {
@@ -76,6 +76,115 @@ async function generateWithFallbackAndTimeout(
   throw lastError || new Error("Falha ao gerar conteúdo com todos os modelos disponíveis.");
 }
 
+// Fallback generator for chat responses using local CRM intelligence when API key is unavailable/blocked
+function generateFallbackChatResponse(
+  message: string,
+  clients: any[] = [],
+  sales: any[] = [],
+  engineResult?: any,
+  brokerLearnedProfile?: any
+): string {
+  const lower = message.toLowerCase();
+  const totalLeads = clients.length;
+  const totalCommission = sales.reduce((sum: number, sale: any) => sum + (sale.commissionValue || 0), 0);
+  const priorities = engineResult?.priorities || [];
+  const overdueTasks = engineResult?.overdueTasks || [];
+  const todayTasks = engineResult?.todayTasks || [];
+  const alerts = engineResult?.alerts || [];
+
+  // 1. Quem chamar hoje / Prioridades / Tarefas
+  if (lower.includes("chamar") || lower.includes("prioridade") || lower.includes("hoje") || lower.includes("fazer")) {
+    let res = `Olá, corretor! 👋 Com base na análise em tempo real da sua carteira no CRM, aqui estão as suas **prioridades absolutas para hoje**:\n\n`;
+
+    if (priorities.length > 0) {
+      res += `### 🔥 Leads de Alta Prioridade\n`;
+      priorities.slice(0, 4).forEach((p: any) => {
+        res += `- **${p.clientName}**: ${p.title} — *${p.description}*\n`;
+      });
+      res += `\n`;
+    }
+
+    if (overdueTasks.length > 0 || todayTasks.length > 0) {
+      res += `### 📅 Compromissos & Tarefas Imediatas\n`;
+      overdueTasks.slice(0, 3).forEach((t: any) => {
+        res += `- ⚠️ **${t.clientName}** (Atrasada): ${t.title} — ${t.description}\n`;
+      });
+      todayTasks.slice(0, 3).forEach((t: any) => {
+        res += `- 📌 **${t.clientName}**: ${t.title} — ${t.description}\n`;
+      });
+      res += `\n`;
+    }
+
+    if (priorities.length === 0 && overdueTasks.length === 0 && todayTasks.length === 0) {
+      res += `Sua carteira está em dia! Uma excelente oportunidade para prospectar novos clientes ou resgatar contatos em *Em Atendimento*.\n\n`;
+    }
+
+    res += `💡 **Dica do Merlin**: Inicie o dia com os contatos de alta prioridade via WhatsApp e garanta a definição da *Data do Próximo Contato* para cada um.`;
+    return res;
+  }
+
+  // 2. Mensagem / Script para cliente específico
+  if (lower.includes("mensagem") || lower.includes("script") || lower.includes("texto") || lower.includes("whatsapp") || lower.includes("abordagem")) {
+    // Tenta encontrar o cliente citado
+    const foundClient = clients.find((c: any) => c.name && lower.includes(c.name.toLowerCase()));
+    
+    if (foundClient) {
+      const emp = foundClient.empreendimento || "o imóvel de seu interesse";
+      return `Aqui está uma sugestão de abordagem personalizada e humanizada para você enviar para **${foundClient.name}**:\n\n` +
+        `---\n\n` +
+        `"Oi ${foundClient.name}, tudo bem? Aqui é o seu corretor! 👋\n\n` +
+        `Estive analisando algumas condições exclusivas sobre **${emp}** e lembrei imediatamente do seu perfil.\n\n` +
+        `Consegui separar os detalhes e uma simulação atualizada. Como está sua disponibilidade para falarmos 2 minutinhos hoje?"\n\n` +
+        `---\n\n` +
+        `💡 *Copie a mensagem acima e envie no WhatsApp do cliente para reaquecer a negociação!*`;
+    } else {
+      const sampleClient = clients[0];
+      const name = sampleClient ? sampleClient.name : "Cliente";
+      const emp = sampleClient?.empreendimento || "o empreendimento";
+      return `Aqui está um modelo de abordagem de alto impacto que você pode adaptar para seus clientes:\n\n` +
+        `---\n\n` +
+        `"Olá, ${name}! Tudo bem com você? 👋\n\n` +
+        `Estou passando rapidinho porque surgiram novidades importantes sobre as condições de **${emp}** e lembrei de você.\n\n` +
+        `Podemos bater um papo rápido de 2 minutinhos ainda hoje para eu te mostrar?"\n\n` +
+        `---\n\n` +
+        `💡 *Você pode me pedir um script personalizado especificando o nome do cliente cadastrado na sua carteira!*`;
+    }
+  }
+
+  // 3. Faturamento / Performance / Comissões
+  if (lower.includes("faturamento") || lower.includes("comiss") || lower.includes("ganho") || lower.includes("venda") || lower.includes("meta")) {
+    const formattedComm = totalCommission.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return `### 📊 Raio-X Financeiro & Performance\n\n` +
+      `- **Comissões Acumuladas:** ${formattedComm}\n` +
+      `- **Total de Vendas Registradas:** ${sales.length}\n` +
+      `- **Carteira de Leads Ativos:** ${totalLeads} clientes cadastrados\n\n` +
+      `🎯 **Estratégia para alavancar seu faturamento**:\n` +
+      `1. Acelere os clientes em fase de **Proposta** e **Documentação** para transformar em comissão este mês.\n` +
+      `2. Resgate leads em **Em Atendimento** com foco em agendar visitas presenciais no final de semana.`;
+  }
+
+  // 4. Auditoria da Carteira / Leads Frios
+  if (lower.includes("auditoria") || lower.includes("carteira") || lower.includes("frio") || lower.includes("estagnado") || lower.includes("gargalo")) {
+    return `### 🔍 Diagnóstico Estratégico da Carteira\n\n` +
+      `Identifiquei **${totalLeads} leads** cadastrados no seu CRM. Aqui estão os pontos de atenção:\n\n` +
+      `- ⚠️ **Alertas de Gargalo:** ${alerts.length} oportunidades demandando intervenção.\n` +
+      `- 🔥 **Prioridades Ativas:** ${priorities.length} clientes quentes para fechamento.\n\n` +
+      `**Recomendações Táticas:**\n` +
+      `1. **Resgate de Leads Estagnados**: Envie uma mensagem rápida com novidades de mercado ou novas unidades disponíveis.\n` +
+      `2. **Padronização de Retorno**: Não deixe nenhum cliente sem data de próximo contato agendada.\n` +
+      `3. **Foco em Visitas**: Transforme contatos digitais em visitas presenciais aos plantões ou imóveis.`;
+  }
+
+  // Resposta geral contextualizada do Merlin
+  return `Olá, corretor! 👋 Sou o **Merlin**, seu copiloto de vendas.\n\n` +
+    `Estou conectado à sua carteira com **${totalLeads} leads** e **${sales.length} vendas registradas** (Total: R$ ${totalCommission.toLocaleString('pt-BR')}).\n\n` +
+    `Como posso ajudar você a bater suas metas agora? Você pode me pedir:\n` +
+    `- *"Quais clientes devo chamar hoje?"*\n` +
+    `- *"Crie uma mensagem para [Nome do Cliente]"*\n` +
+    `- *"Como está meu faturamento e comissões?"*\n` +
+    `- *"Faça uma auditoria rápida na minha carteira."*`;
+}
+
 // API Route: Generate personalized copy/script for a lead
 app.post("/api/gemini/generate-message", async (req, res) => {
   try {
@@ -84,8 +193,6 @@ app.post("/api/gemini/generate-message", async (req, res) => {
     if (!clientName) {
       return res.status(400).json({ error: "O nome do cliente é obrigatório." });
     }
-
-    const ai = getGoogleGenAI();
 
     const systemPrompt = `Você é o Merlin, um assistente virtual e especialista em copywriting para corretores de imóveis de alto desempenho.
 Seu objetivo é criar mensagens de abordagem curtas, humanas, extremamente persuasivas e amigáveis para envio via WhatsApp ou Email.
@@ -105,11 +212,21 @@ Instruções Adicionais:
 - Tenha um gancho de chamada para ação claro (Call to Action), convidando para uma resposta simples ou um agendamento rápido de conversa.
 - Retorne APENAS a mensagem pronta, sem introduções ou explicações.`;
 
-    const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.7);
-    res.json({ text });
+    try {
+      const ai = getGoogleGenAI();
+      const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.7);
+      return res.json({ text });
+    } catch (aiError: any) {
+      console.warn("[Merlin Server] Gemini API indisponível, usando fallback inteligente de mensagem:", aiError.message);
+      const emp = clientInterest || "as opções disponíveis";
+      const fallbackText = `Olá, ${clientName}! Tudo bem com você? 👋\n\n` +
+        `Estive analisando algumas condições exclusivas e novidades sobre **${emp}** e lembrei do seu perfil.\n\n` +
+        `Separei detalhes atualizados e simulações especiais. Como está sua disponibilidade para falarmos 2 minutinhos hoje?`;
+      return res.json({ text: fallbackText });
+    }
   } catch (error: any) {
-    console.error("Erro ao gerar mensagem via Gemini:", error);
-    res.status(500).json({ error: error.message || "Erro interno do servidor ao gerar mensagem com IA." });
+    console.error("Erro ao gerar mensagem:", error);
+    res.status(500).json({ error: error.message || "Erro interno do servidor ao gerar mensagem." });
   }
 });
 
@@ -118,28 +235,43 @@ app.post("/api/gemini/analyze-leads", async (req, res) => {
   try {
     const { clientsSummary, salesCount, totalCommission } = req.body;
 
-    const ai = getGoogleGenAI();
+    const summary = clientsSummary || { totalCount: 0, noNextContactCount: 0, staleCount: 0, stageCounts: {} };
+    const sales = salesCount !== undefined ? salesCount : 0;
+    const commission = totalCommission !== undefined ? totalCommission : 0;
 
     const systemPrompt = `Você é o Merlin, um consultor estratégico e mentor de vendas de imóveis por inteligência artificial.
 Seu papel é analisar a base de dados de leads de um corretor de imóveis e sugerir 3 recomendações táticas urgentes e extremamente acionáveis para aumentar as vendas e evitar perda de oportunidades.`;
 
     const userPrompt = `Analise a seguinte situação da base de leads do corretor:
-- Total de Leads Cadastrados: ${clientsSummary.totalCount}
+- Total de Leads Cadastrados: ${summary.totalCount}
 - Distribuição de Leads por Etapa do Funil:
-${JSON.stringify(clientsSummary.stageCounts, null, 2)}
-- Quantidade de Vendas Fechadas e Comissões: ${salesCount} vendas, com comissão total acumulada de R$ ${totalCommission.toLocaleString('pt-BR')}
+${JSON.stringify(summary.stageCounts, null, 2)}
+- Quantidade de Vendas Fechadas e Comissões: ${sales} vendas, com comissão total acumulada de R$ ${commission.toLocaleString('pt-BR')}
 - Alertas e Gargalos Detectados:
-  * Leads sem data de retorno agendada: ${clientsSummary.noNextContactCount}
-  * Leads "frios/estagnados" sem contato há mais de 15 dias: ${clientsSummary.staleCount}
+  * Leads sem data de retorno agendada: ${summary.noNextContactCount}
+  * Leads "frios/estagnados" sem contato há mais de 15 dias: ${summary.staleCount}
 
 Com base nestes dados, gere exatamente 3 recomendações táticas bem estruturadas e práticas em português.
 Seja direto, motivador e focado em resultados rápidos. Retorne a resposta em formato Markdown limpo, estruturado com títulos claros para cada recomendação.`;
 
-    const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.75);
-    res.json({ text });
+    try {
+      const ai = getGoogleGenAI();
+      const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.75);
+      return res.json({ text });
+    } catch (aiError: any) {
+      console.warn("[Merlin Server] Gemini API indisponível, usando fallback inteligente de auditoria:", aiError.message);
+      const fallbackText = `### 🎯 Auditoria Estratégica da Carteira\n\n` +
+        `1. **Resgate Urgente de Oportunidades Estagnadas**\n` +
+        `Você possui **${summary.staleCount || 0} leads sem contato há mais de 15 dias**. Envie hoje uma mensagem com gatilho de novidade ou tabela atualizada para reativar o interesse.\n\n` +
+        `2. **Eliminação de Pontos Cegos no Funil**\n` +
+        `Existem **${summary.noNextContactCount || 0} leads sem data de retorno agendada**. Defina imediatamente uma tarefa ou lembrete para cada um, evitando que leads quentes esfriem.\n\n` +
+        `3. **Foco em Fechamentos e Visitas**\n` +
+        `Com **${sales} vendas fechadas** e **R$ ${commission.toLocaleString('pt-BR')}** em comissões, priorize os clientes em fase de proposta e agendamento de visitas no final de semana para acelerar sua meta.`;
+      return res.json({ text: fallbackText });
+    }
   } catch (error: any) {
-    console.error("Erro ao analisar base de leads via Gemini:", error);
-    res.status(500).json({ error: error.message || "Erro interno do servidor ao analisar leads com IA." });
+    console.error("Erro ao analisar base de leads:", error);
+    res.status(500).json({ error: error.message || "Erro interno do servidor ao analisar leads." });
   }
 });
 
@@ -151,8 +283,6 @@ app.post("/api/gemini/chat", async (req, res) => {
     if (!message) {
       return res.status(400).json({ error: "A mensagem do usuário é obrigatória." });
     }
-
-    const ai = getGoogleGenAI();
 
     // Serialize basic statistics for prompt injection
     const totalLeads = clients ? clients.length : 0;
@@ -247,8 +377,21 @@ ${history ? history.map((h: any) => `${h.sender === "user" ? "Corretor" : "Merli
 
 Escreva sua resposta de forma direta, amigável e extremamente acionável:`;
 
-    const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.75);
-    res.json({ text });
+    try {
+      const ai = getGoogleGenAI();
+      const text = await generateWithFallbackAndTimeout(ai, userPrompt, systemPrompt, 0.75);
+      return res.json({ text });
+    } catch (aiError: any) {
+      console.warn("[Merlin Server] Gemini API indisponível, usando fallback inteligente de chat:", aiError.message);
+      const fallbackResponse = generateFallbackChatResponse(
+        message,
+        clients,
+        sales,
+        engineResult,
+        brokerLearnedProfile
+      );
+      return res.json({ text: fallbackResponse });
+    }
   } catch (error: any) {
     console.error("Erro no chat do Merlin:", error);
     res.status(500).json({ error: error.message || "Erro interno do servidor no chat do Merlin." });
