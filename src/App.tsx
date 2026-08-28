@@ -29,7 +29,11 @@ import {
   Compass,
   AlertTriangle,
   UserPlus,
-  CheckSquare
+  CheckSquare,
+  MoreHorizontal,
+  Bot,
+  X,
+  ChevronRight
 } from 'lucide-react';
 import MyDay from './components/MyDay';
 import Dashboard from './components/Dashboard';
@@ -41,6 +45,7 @@ import AddClientModal from './components/AddClientModal';
 import MyRoutine from './components/MyRoutine';
 import { motion, AnimatePresence } from 'motion/react';
 import MerlinChat from './components/MerlinChat';
+import { UserMenu } from './modules/auth';
 
 export default function App() {
   // Global States
@@ -48,10 +53,11 @@ export default function App() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   // Navigation state
   const [activeTab, setActiveTab] = useState<string>('meu_dia');
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState<boolean>(false);
 
   // Filter overrides for navigation shortcuts
   const [clientSpecialFilter, setClientSpecialFilter] = useState<'all' | 'high_priority' | 'no_next_contact'>('all');
@@ -59,6 +65,7 @@ export default function App() {
 
   const handleTabChange = (tabName: string) => {
     setActiveTab(tabName);
+    setIsMobileMoreOpen(false);
     if (tabName !== 'clientes') {
       setClientSpecialFilter('all');
     }
@@ -411,176 +418,210 @@ export default function App() {
   const activeClientObj = clients.find(c => c.id === selectedClientId);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#0B0B0B] text-white flex flex-col md:flex-row">
       
-      {/* 1. SIDEBAR (DESKTOP / CHROMEOOK VIEW) */}
-      <aside className="hidden md:flex w-64 bg-slate-900 dark:bg-slate-950 border-r border-slate-800 flex-col h-screen sticky top-0 p-5 text-white justify-between">
-        <div className="space-y-8">
-          {/* Logo Brand */}
-          <div className="flex items-center gap-2.5 px-2">
-            <div className="p-2 bg-teal-500 rounded-xl shadow-lg shadow-teal-500/20">
-              <Sparkles className="h-5 w-5 text-slate-900 animate-pulse" />
-            </div>
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight font-display">Merlin CRM</h1>
-              <span className="text-[10px] text-teal-400 font-bold uppercase tracking-widest">CRM Pessoal</span>
+      {/* 1. SIDEBAR (DESKTOP VIEW) */}
+      <aside className="hidden md:flex w-64 bg-[#111111] border-r border-[#303030] flex-col h-screen sticky top-0 p-4 text-white justify-between z-30 shadow-xs">
+        <div className="space-y-5">
+          {/* Logo Brand Header */}
+          <div className="flex items-center justify-between px-2 pt-1">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-[#FF9800] via-[#FF7A00] to-[#E85D00] text-[#0B0B0B] shadow-md shadow-orange-500/25">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg font-extrabold tracking-tight font-display text-white flex items-center gap-1.5">
+                  Merlin CRM
+                </h1>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00] animate-pulse"></span>
+                  <span className="text-[10px] text-[#FF7A00] font-bold uppercase tracking-wider">Copiloto IA Ativo</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Quick Stats Panel in Sidebar */}
-          <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-3 text-xs space-y-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase">Hoje</span>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Tarefas de Hoje:</span>
-              <span className={`font-mono font-bold px-1.5 py-0.2 rounded-md ${
-                todayAlertsCount > 0 ? 'bg-rose-500/20 text-rose-400' : 'bg-teal-500/20 text-teal-400'
-              }`}>
-                {todayAlertsCount}
-              </span>
+          {/* Primary Quick CTA */}
+          <button
+            onClick={() => setIsAddingClient(true)}
+            className="w-full bg-[#FF7A00] hover:bg-[#FF9800] text-[#0B0B0B] font-bold py-2.5 px-3 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <span>Novo Cliente</span>
+          </button>
+
+          {/* Categorized Navigation Hierarchy */}
+          <nav className="space-y-4 text-xs">
+            {/* 1. Cockpit */}
+            <div className="space-y-1">
+              <p className="px-2.5 text-[10px] font-bold tracking-wider text-[#888888] uppercase">
+                Cockpit
+              </p>
+              <button
+                onClick={() => handleTabChange('meu_dia')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'meu_dia'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar className={`h-4 w-4 ${activeTab === 'meu_dia' ? 'text-[#FF7A00]' : 'text-[#888888]'}`} />
+                  <span className="text-xs">Meu Dia</span>
+                </div>
+                {todayAlertsCount > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30">
+                    {todayAlertsCount}
+                  </span>
+                )}
+              </button>
             </div>
-          </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1">
-            <button
-              onClick={() => handleTabChange('meu_dia')}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'meu_dia'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4.5 w-4.5" />
-                <span>Meu Dia</span>
-              </div>
-              {todayAlertsCount > 0 && (
-                <span className={`text-[10px] font-extrabold h-5 px-1.5 rounded-md flex items-center justify-center ${
-                  activeTab === 'meu_dia' ? 'bg-slate-950 text-white' : 'bg-rose-500 text-white'
-                }`}>
-                  {todayAlertsCount}
+            {/* 2. Comercial */}
+            <div className="space-y-1">
+              <p className="px-2.5 text-[10px] font-bold tracking-wider text-[#888888] uppercase">
+                Comercial
+              </p>
+              <button
+                onClick={() => handleTabChange('clientes')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'clientes'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className={`h-4 w-4 ${activeTab === 'clientes' ? 'text-[#FF7A00]' : 'text-[#888888]'}`} />
+                  <span className="text-xs">Clientes</span>
+                </div>
+                <span className="text-[10px] font-mono text-[#888888] font-semibold">
+                  {clients.length}
                 </span>
-              )}
-            </button>
+              </button>
 
-            <button
-              onClick={() => handleTabChange('rotina')}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'rotina'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <CheckSquare className="h-4.5 w-4.5" />
-                <span>Minha Rotina</span>
-              </div>
-              {pendingTasksCount > 0 && (
-                <span className={`text-[10px] font-extrabold h-5 px-1.5 rounded-md flex items-center justify-center ${
-                  activeTab === 'rotina' ? 'bg-slate-950 text-white' : 'bg-rose-500 text-white'
-                }`}>
-                  {pendingTasksCount}
+              <button
+                onClick={() => handleTabChange('rotina')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'rotina'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <CheckSquare className={`h-4 w-4 ${activeTab === 'rotina' ? 'text-[#FF7A00]' : 'text-[#888888]'}`} />
+                  <span className="text-xs">Minha Rotina</span>
+                </div>
+                {pendingTasksCount > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">
+                    {pendingTasksCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleTabChange('funil')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'funil'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <Trello className={`h-4 w-4 ${activeTab === 'funil' ? 'text-[#FF7A00]' : 'text-[#888888]'}`} />
+                <span className="text-xs">Funil de Vendas</span>
+              </button>
+            </div>
+
+            {/* 3. Inteligência Comercial */}
+            <div className="space-y-1">
+              <p className="px-2.5 text-[10px] font-bold tracking-wider text-[#888888] uppercase">
+                Inteligência
+              </p>
+              <button
+                onClick={() => handleTabChange('intelligence')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'intelligence'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/35 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Bot className={`h-4 w-4 ${activeTab === 'intelligence' ? 'text-[#FF7A00]' : 'text-[#FF7A00]'}`} />
+                  <span className="text-xs">Merlin AI</span>
+                </div>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-[#FF7A00]/10 text-[#FF7A00] border border-[#FF7A00]/25">
+                  Copiloto
                 </span>
-              )}
-            </button>
+              </button>
+            </div>
 
-            <button
-              onClick={() => handleTabChange('funil')}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'funil'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Trello className="h-4.5 w-4.5" />
-              <span>Funil de Vendas</span>
-            </button>
+            {/* 4. Gestão e Resultados */}
+            <div className="space-y-1">
+              <p className="px-2.5 text-[10px] font-bold tracking-wider text-[#888888] uppercase">
+                Gestão
+              </p>
+              <button
+                onClick={() => handleTabChange('comissoes')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'comissoes'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <DollarSign className={`h-4 w-4 ${activeTab === 'comissoes' ? 'text-[#FF7A00]' : 'text-[#888888]'}`} />
+                <span className="text-xs">Comissões</span>
+              </button>
 
-            <button
-              onClick={() => handleTabChange('clientes')}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'clientes'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Users className="h-4.5 w-4.5" />
-              <span>Clientes</span>
-            </button>
-
-            <button
-              onClick={() => handleTabChange('comissoes')}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'comissoes'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <DollarSign className="h-4.5 w-4.5" />
-              <span>Comissões</span>
-            </button>
-
-            <button
-              onClick={() => handleTabChange('dashboard')}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === 'dashboard'
-                  ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <LayoutDashboard className="h-4.5 w-4.5" />
-              <span>Resultados</span>
-            </button>
+              <button
+                onClick={() => handleTabChange('dashboard')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  activeTab === 'dashboard'
+                    ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 shadow-xs'
+                    : 'text-[#BDBDBD] hover:text-white hover:bg-[#1F1F1F]'
+                }`}
+              >
+                <LayoutDashboard className={`h-4 w-4 ${activeTab === 'dashboard' ? 'text-[#FF7A00]' : 'text-[#888888]'}`} />
+                <span className="text-xs">Resultados</span>
+              </button>
+            </div>
           </nav>
         </div>
 
-        {/* Footer controls & theme switcher */}
-        <div className="space-y-4 pt-4 border-t border-slate-800">
-          <button
-            onClick={handleToggleTheme}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer border border-slate-800"
-          >
-            <span className="flex items-center gap-2">
-              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              <span>{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
-            </span>
-            <span className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded uppercase font-semibold">Tema</span>
-          </button>
+        {/* Footer controls & User Profile */}
+        <div className="space-y-3 pt-3 border-t border-[#303030]">
+          <UserMenu />
           
-          <div className="text-[10px] text-slate-500 text-center">
-            Merlin CRM &copy; 2026
+          <div className="text-[10px] text-[#888888] text-center font-medium">
+            Merlin CRM v2.0 &bull; IA Ativa
           </div>
         </div>
       </aside>
 
-      {/* 2. MOBILE HEADER (IPHONE VIEW) */}
-      <header className="md:hidden bg-slate-900 text-white p-4 sticky top-0 z-40 flex items-center justify-between border-b border-slate-800 shadow-sm">
+      {/* 2. MOBILE HEADER (CLEAN & ERGONOMIC) */}
+      <header className="md:hidden sticky top-0 z-40 bg-[#111111]/95 backdrop-blur-md border-b border-[#303030] px-4 py-2.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-teal-500 rounded-lg">
-            <Sparkles className="h-4.5 w-4.5 text-slate-900" />
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#FF9800] via-[#FF7A00] to-[#E85D00] text-[#0B0B0B] shadow-xs">
+            <Sparkles className="h-4 w-4" />
           </div>
-          <span className="font-extrabold text-lg font-display tracking-tight">Merlin CRM</span>
+          <span className="font-extrabold text-base font-display tracking-tight text-white">
+            Merlin CRM
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleToggleTheme}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-all"
-          >
-            {theme === 'light' ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
-          </button>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAddingClient(true)}
-            className="bg-teal-500 text-slate-900 h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+            className="bg-[#FF7A00] hover:bg-[#FF9800] text-[#0B0B0B] h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs active:scale-95 transition-transform"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Novo</span>
           </button>
+
+          <UserMenu compact />
         </div>
       </header>
 
       {/* 3. MAIN WORKSPACE CONTENT */}
-      <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-x-hidden min-h-[calc(100vh-120px)] md:h-screen md:overflow-y-auto">
+      <main className="flex-1 p-3.5 sm:p-5 md:p-8 pb-24 md:pb-8 overflow-x-hidden min-h-[calc(100vh-120px)] md:h-screen md:overflow-y-auto bg-[#0B0B0B]">
         <div className="max-w-6xl mx-auto">
           {activeTab === 'meu_dia' && (
             <MyDay
@@ -605,6 +646,7 @@ export default function App() {
               onToggleTaskComplete={handleToggleTaskComplete}
               onDeleteTask={handleDeleteTask}
               onSelectClient={setSelectedClientId}
+              onUpdateClient={handleUpdateClient}
               showTodayOnly={routineTodayOnly}
               onClearTodayOnly={() => setRoutineTodayOnly(false)}
             />
@@ -661,8 +703,8 @@ export default function App() {
           {activeTab === 'intelligence' && (
             <div className="space-y-6">
               <div className="space-y-1">
-                <h1 className="text-2xl font-black text-slate-100 font-display">Assistente Merlin</h1>
-                <p className="text-slate-400 text-xs font-semibold">
+                <h1 className="text-2xl font-black text-white font-display">Assistente Merlin</h1>
+                <p className="text-[#BDBDBD] text-xs font-semibold">
                   Seu consultor comercial tático e redator de mensagens pessoal. Use a conversa para redigir abordagens de WhatsApp para clientes, analisar sua carteira ou obter conselhos práticos de vendas.
                 </p>
               </div>
@@ -679,78 +721,218 @@ export default function App() {
         </div>
       </main>
 
-      {/* 4. MOBILE BOTTOM BAR NAVIGATION */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-400 border-t border-slate-800 z-40 flex items-center justify-around h-16 shadow-2xl">
+      {/* 4. MOBILE BOTTOM BAR NAVIGATION (ERGONOMIC 1-HANDED THUMB REACH) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#111111]/95 backdrop-blur-xl border-t border-[#303030] z-40 flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom,0px)] shadow-2xl px-1">
+        {/* Meu Dia */}
         <button
           onClick={() => handleTabChange('meu_dia')}
-          className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
-            activeTab === 'meu_dia' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
+          className={`flex flex-col items-center justify-center flex-1 h-full relative touch-target transition-all cursor-pointer ${
+            activeTab === 'meu_dia' ? 'text-[#FF7A00] font-bold' : 'text-[#888888] hover:text-white'
           }`}
         >
-          <Calendar className="h-5 w-5" />
-          <span className="text-[9px] font-bold mt-1">Meu Dia</span>
-          {todayAlertsCount > 0 && (
-            <span className="absolute top-2 right-6 bg-rose-500 text-white text-[8px] font-black h-4 px-1 rounded-full flex items-center justify-center">
-              {todayAlertsCount}
-            </span>
+          <div className="relative">
+            <Calendar className="h-5 w-5" />
+            {todayAlertsCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-[#EF4444] text-white text-[8px] font-black h-4 min-w-4 px-1 rounded-full flex items-center justify-center border border-[#0B0B0B]">
+                {todayAlertsCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1">Meu Dia</span>
+          {activeTab === 'meu_dia' && (
+            <span className="absolute bottom-1 w-5 h-0.5 rounded-full bg-[#FF7A00]"></span>
           )}
         </button>
 
-        <button
-          onClick={() => handleTabChange('rotina')}
-          className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
-            activeTab === 'rotina' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <CheckSquare className="h-5 w-5" />
-          <span className="text-[9px] font-bold mt-1">Rotina</span>
-          {pendingTasksCount > 0 && (
-            <span className="absolute top-2 right-6 bg-rose-500 text-white text-[8px] font-black h-4 px-1 rounded-full flex items-center justify-center">
-              {pendingTasksCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => handleTabChange('funil')}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-            activeTab === 'funil' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Trello className="h-5 w-5" />
-          <span className="text-[9px] font-bold mt-1">Funil</span>
-        </button>
-
+        {/* Clientes */}
         <button
           onClick={() => handleTabChange('clientes')}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-            activeTab === 'clientes' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
+          className={`flex flex-col items-center justify-center flex-1 h-full relative touch-target transition-all cursor-pointer ${
+            activeTab === 'clientes' ? 'text-[#FF7A00] font-bold' : 'text-[#888888] hover:text-white'
           }`}
         >
           <Users className="h-5 w-5" />
-          <span className="text-[9px] font-bold mt-1">Clientes</span>
+          <span className="text-[10px] mt-1">Clientes</span>
+          {activeTab === 'clientes' && (
+            <span className="absolute bottom-1 w-5 h-0.5 rounded-full bg-[#FF7A00]"></span>
+          )}
         </button>
 
+        {/* Rotina */}
         <button
-          onClick={() => handleTabChange('comissoes')}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-            activeTab === 'comissoes' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
+          onClick={() => handleTabChange('rotina')}
+          className={`flex flex-col items-center justify-center flex-1 h-full relative touch-target transition-all cursor-pointer ${
+            activeTab === 'rotina' ? 'text-[#FF7A00] font-bold' : 'text-[#888888] hover:text-white'
           }`}
         >
-          <DollarSign className="h-5 w-5" />
-          <span className="text-[9px] font-bold mt-1">Comissões</span>
+          <div className="relative">
+            <CheckSquare className="h-5 w-5" />
+            {pendingTasksCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-[#F59E0B] text-[#0B0B0B] text-[8px] font-black h-4 min-w-4 px-1 rounded-full flex items-center justify-center border border-[#0B0B0B]">
+                {pendingTasksCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1">Rotina</span>
+          {activeTab === 'rotina' && (
+            <span className="absolute bottom-1 w-5 h-0.5 rounded-full bg-[#FF7A00]"></span>
+          )}
         </button>
 
+        {/* Merlin AI */}
         <button
-          onClick={() => handleTabChange('dashboard')}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-            activeTab === 'dashboard' ? 'text-teal-400' : 'text-slate-400 hover:text-white'
+          onClick={() => handleTabChange('intelligence')}
+          className={`flex flex-col items-center justify-center flex-1 h-full relative touch-target transition-all cursor-pointer ${
+            activeTab === 'intelligence' ? 'text-[#FF7A00] font-bold' : 'text-[#888888] hover:text-white'
           }`}
         >
-          <LayoutDashboard className="h-5 w-5" />
-          <span className="text-[9px] font-bold mt-1">Resultados</span>
+          <div className="p-1 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00]">
+            <Bot className="h-4.5 w-4.5" />
+          </div>
+          <span className="text-[10px] mt-0.5">Merlin AI</span>
+          {activeTab === 'intelligence' && (
+            <span className="absolute bottom-1 w-5 h-0.5 rounded-full bg-[#FF7A00]"></span>
+          )}
+        </button>
+
+        {/* Mais (Secondary Modules) */}
+        <button
+          onClick={() => setIsMobileMoreOpen(true)}
+          className={`flex flex-col items-center justify-center flex-1 h-full relative touch-target transition-all cursor-pointer ${
+            ['funil', 'comissoes', 'dashboard'].includes(activeTab)
+              ? 'text-[#FF7A00] font-bold'
+              : 'text-[#888888] hover:text-white'
+          }`}
+        >
+          <div className="relative">
+            <MoreHorizontal className="h-5 w-5" />
+            {['funil', 'comissoes', 'dashboard'].includes(activeTab) && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF7A00]"></span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1">Mais</span>
+          {['funil', 'comissoes', 'dashboard'].includes(activeTab) && (
+            <span className="absolute bottom-1 w-5 h-0.5 rounded-full bg-[#FF7A00]"></span>
+          )}
         </button>
       </nav>
+
+      {/* 4.1. MOBILE "MAIS" BOTTOM SHEET DRAWER */}
+      <AnimatePresence>
+        {isMobileMoreOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMoreOpen(false)}
+              className="md:hidden fixed inset-0 bg-[#0B0B0B]/80 backdrop-blur-xs z-50 cursor-pointer"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#161616] border-t border-[#303030] rounded-t-3xl p-5 pb-8 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto"
+            >
+              {/* Drag bar indicator */}
+              <div className="w-12 h-1 bg-[#303030] rounded-full mx-auto" />
+
+              <div className="flex items-center justify-between pt-1">
+                <div>
+                  <h3 className="text-base font-bold font-display text-white">
+                    Módulos & Gestão
+                  </h3>
+                  <p className="text-xs text-[#888888]">
+                    Acesso rápido a todos os recursos
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsMobileMoreOpen(false)}
+                  className="p-1.5 rounded-lg bg-[#1F1F1F] text-[#888888] hover:text-white cursor-pointer border border-[#303030]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Grid of options */}
+              <div className="grid grid-cols-1 gap-2 pt-2">
+                <button
+                  onClick={() => handleTabChange('funil')}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    activeTab === 'funil'
+                      ? 'bg-[#FF7A00]/15 border-[#FF7A00]/40 text-[#FF7A00]'
+                      : 'bg-[#1F1F1F] border-[#303030] text-[#E5E5E5]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-[#FF7A00]/10 text-[#FF7A00]">
+                      <Trello className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Funil de Vendas</p>
+                      <p className="text-xs text-[#888888]">Quadro Kanban de negociações</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-[#888888]" />
+                </button>
+
+                <button
+                  onClick={() => handleTabChange('comissoes')}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    activeTab === 'comissoes'
+                      ? 'bg-[#FF7A00]/15 border-[#FF7A00]/40 text-[#FF7A00]'
+                      : 'bg-[#1F1F1F] border-[#303030] text-[#E5E5E5]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-[#FF7A00]/10 text-[#FF7A00]">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Comissões & Finanças</p>
+                      <p className="text-xs text-[#888888]">Simulador e extrato de honorários</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-[#888888]" />
+                </button>
+
+                <button
+                  onClick={() => handleTabChange('dashboard')}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    activeTab === 'dashboard'
+                      ? 'bg-[#FF7A00]/15 border-[#FF7A00]/40 text-[#FF7A00]'
+                      : 'bg-[#1F1F1F] border-[#303030] text-[#E5E5E5]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-[#FF7A00]/10 text-[#FF7A00]">
+                      <LayoutDashboard className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Resultados & Métricas</p>
+                      <p className="text-xs text-[#888888]">Performance e conversão</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-[#888888]" />
+                </button>
+              </div>
+
+              {/* Quick Add Client Button */}
+              <button
+                onClick={() => {
+                  setIsMobileMoreOpen(false);
+                  setIsAddingClient(true);
+                }}
+                className="w-full bg-[#FF7A00] hover:bg-[#FF9800] text-[#0B0B0B] font-bold p-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Plus className="h-4 w-4 stroke-[2.5]" />
+                <span>Cadastrar Novo Cliente</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* 5. SIDEWAYS DETAILS DRAWER (CLIENT PROFILE SCREEN) */}
       <AnimatePresence>

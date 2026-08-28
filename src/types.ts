@@ -52,6 +52,11 @@ export interface Sale {
   clientName: string;
   commissionValue: number;
   saleDate: string; // YYYY-MM-DD
+  vgv?: number; // Valor Geral de Vendas do Imóvel
+  propertyName?: string; // Nome do Empreendimento / Unidade
+  commissionRate?: number; // Percentual praticado ex: 3%
+  paymentStatus?: 'Recebido' | 'A Receber' | 'Em Análise';
+  notes?: string;
 }
 
 export interface Task {
@@ -66,3 +71,4 @@ export interface Task {
   completed: boolean;
   createdAt: string;
 }
+
